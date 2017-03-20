@@ -70,13 +70,8 @@ public class LocalConfigFileEnvironmentProcessor {
     }
 
     public void processEnvironment(ConfigurableEnvironment environment, PropertySource source) {
-        if (source != null) {
-            environment.getPropertySources().addFirst(source);
-        }
         addPropertySources(environment, this.getResourceLoader());
-        if (source != null) {
-            this.addPropertySource(environment, (CompositePropertySource) source);
-        }
+        merge(environment, (CompositePropertySource)source);
     }
 
     protected void addPropertySources(ConfigurableEnvironment environment, ResourceLoader resourceLoader) {
@@ -88,8 +83,8 @@ public class LocalConfigFileEnvironmentProcessor {
         }
     }
 
-    private void addPropertySource(ConfigurableEnvironment environment, CompositePropertySource composite) {
-        if (environment != null) {
+    private void merge(ConfigurableEnvironment environment, CompositePropertySource composite) {
+        if (environment != null && composite != null) {
             if (environment.getPropertySources() != null) {
                 for (PropertySource source : environment.getPropertySources()) {
                     if (source.getSource() instanceof Map) {
@@ -99,13 +94,15 @@ public class LocalConfigFileEnvironmentProcessor {
                         composite.addPropertySource(new MapPropertySource(source
                                 .getName(), map));
                     } else if (source.getSource() instanceof List) {
-                        List sourceList = (List) source.getSource();
-                        for (Object src : sourceList) {
+                        List sources = (List) source.getSource();
+                        for (Object src : sources) {
                             if (src instanceof  EnumerablePropertySource) {
-                                EnumerablePropertySource eps = (EnumerablePropertySource) src;
-                                composite.addPropertySource(eps);
+                                EnumerablePropertySource enumerable = (EnumerablePropertySource) src;
+                                composite.addPropertySource(enumerable);
                             }
                         }
+                    } else if (!(source instanceof CompositePropertySource)) {
+                        composite.addPropertySource(source);
                     }
                 }
             }

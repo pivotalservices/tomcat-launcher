@@ -47,5 +47,6 @@ dependencies {
     runtime('mysql:mysql-connector-java:6.0.5')
     runtime("org.apache.tomcat:tomcat-dbcp:${tomcatVersion}")
 
-    testCompile("junit:junit:4.12")
+    testCompile("junit:junit-dep:4.11")
+    testCompile("com.github.stefanbirkner:system-rules:1.16.1")
 }

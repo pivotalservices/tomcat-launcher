@@ -150,6 +150,9 @@ public class TomcatConfigurer {
             this.locator = new ConfigServicePropertySourceLocator(defaults);
             this.locator.setRestTemplate(restTemplate);
             PropertySource source = this.locator.locate(this.environment);
+            if (source != null) {
+                this.environment.getPropertySources().addFirst(source);
+            }
             this.localConfigFileEnvironmentProcessor.processEnvironment(environment, source);
 
             return source == null ? this.environment.getPropertySources().get(APPLICATION_CONFIGURATION_PROPERTY_SOURCE_NAME) : source;

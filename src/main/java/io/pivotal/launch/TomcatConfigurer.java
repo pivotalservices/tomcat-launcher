@@ -17,6 +17,7 @@ import org.springframework.cloud.config.client.ConfigServicePropertySourceLocato
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
+import org.springframework.util.Assert;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriTemplateHandler;
 
@@ -35,6 +36,14 @@ import static io.pivotal.config.LocalConfigFileEnvironmentProcessor.APPLICATION_
 public class TomcatConfigurer {
 
     private final TomcatLaunchHelper tomcatLaunchHelper = new TomcatLaunchHelper();
+
+    private ConfigurationLoader configurationLoader = null;
+
+    public TomcatConfigurer() {}
+
+    public TomcatConfigurer(ConfigurationLoader configurationLoader) {
+        this.configurationLoader = configurationLoader;
+    }
 
     public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
         String buildLibDir = null;
@@ -114,41 +123,45 @@ public class TomcatConfigurer {
     }
 
     public PropertySource loadConfiguration(String configServerUrl) {
-        return new ConfigurationLoader().load(configServerUrl);
+        if (this.configurationLoader == null) {
+            return new DefaultConfigurationLoader(configServerUrl).load();
+        }
+        return this.configurationLoader.load();
     }
 
-    static class ConfigurationLoader {
+    static class DefaultConfigurationLoader implements ConfigurationLoader {
 
-        public static final String HTTPS_SCHEME = "https://";
+        private static final String HTTPS_SCHEME = "https://";
 
-        public static final String HTTP_SCHEME = "http://";
+        private static final String HTTP_SCHEME = "http://";
 
         private final ConfigurableEnvironment environment = new StandardEnvironment();
 
-        private ConfigServicePropertySourceLocator locator;
+        private final ConfigClientProperties defaults = new ConfigClientProperties(this.environment);
+
+        private final ConfigServicePropertySourceLocator locator = new ConfigServicePropertySourceLocator(defaults);
 
         private final RestTemplate restTemplate = new RestTemplate();
 
         private final LocalConfigFileEnvironmentProcessor localConfigFileEnvironmentProcessor = new LocalConfigFileEnvironmentProcessor();
 
-        ConfigurationLoader() {}
+        private String configServerUrl = null;
 
-        PropertySource load(String configServerUrl) {
-            if (configServerUrl == null || configServerUrl.isEmpty()) {
-                throw new RuntimeException("You MUST set the config server URI");
-            }
+        DefaultConfigurationLoader(final String configServerUrl) {
+            Assert.hasLength(configServerUrl, "You MUST set the config server URI");
             if (!configServerUrl.startsWith(HTTP_SCHEME) && !configServerUrl.startsWith(HTTPS_SCHEME)) {
                 throw new RuntimeException("You MUST put the URI scheme in front of the config server URI");
             }
-            System.out.println("configServerUrl is '" + configServerUrl + "'");
-            ConfigClientProperties defaults = new ConfigClientProperties(this.environment);
-            defaults.setFailFast(false);
-            defaults.setUri(configServerUrl);
+            this.configServerUrl = configServerUrl;
+            this.defaults.setFailFast(false);
+            this.defaults.setUri(this.configServerUrl);
             DefaultUriTemplateHandler uriTemplateHandler = new DefaultUriTemplateHandler();
-            uriTemplateHandler.setBaseUrl(configServerUrl);
+            uriTemplateHandler.setBaseUrl(this.configServerUrl);
             this.restTemplate.setUriTemplateHandler(uriTemplateHandler);
-            this.locator = new ConfigServicePropertySourceLocator(defaults);
             this.locator.setRestTemplate(restTemplate);
+        }
+
+        public PropertySource load() {
             PropertySource source = this.locator.locate(this.environment);
             if (source != null) {
                 this.environment.getPropertySources().addFirst(source);

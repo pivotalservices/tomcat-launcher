@@ -9,7 +9,9 @@ import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.springframework.core.env.PropertySource;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class TomcatConfigurerTest {
 
@@ -21,6 +23,14 @@ public class TomcatConfigurerTest {
     public void testRunWithNoConfigServerUrl() throws Exception {
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer();
         tomcatConfigurer.loadConfiguration("");
+    }
+
+    @Test
+    public void testLoadConfiguration() throws Exception {
+        ConfigurationLoader loader = () -> new PropertySource.StubPropertySource("test");
+        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer(loader);
+        PropertySource source = tomcatConfigurer.loadConfiguration(null);
+        assertThat(source, instanceOf(PropertySource.StubPropertySource.class));
     }
 
     @Test

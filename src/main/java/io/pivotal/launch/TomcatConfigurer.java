@@ -33,7 +33,6 @@ import static io.pivotal.config.LocalConfigFileEnvironmentProcessor.APPLICATION_
  * Created by malston on 3/20/17.
  */
 public class TomcatConfigurer {
-    public static final String PREFIX_JDBC = "jdbc/";
 
     private final TomcatLaunchHelper tomcatLaunchHelper = new TomcatLaunchHelper();
 

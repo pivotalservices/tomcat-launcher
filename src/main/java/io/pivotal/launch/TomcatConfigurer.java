@@ -12,12 +12,8 @@ import org.apache.tomcat.util.descriptor.web.ContextEnvironment;
 import org.apache.tomcat.util.descriptor.web.ContextResource;
 import org.apache.tomcat.util.scan.Constants;
 import org.apache.tomcat.util.scan.StandardJarScanFilter;
-import org.springframework.cloud.Cloud;
-import org.springframework.cloud.CloudException;
-import org.springframework.cloud.CloudFactory;
 import org.springframework.cloud.config.client.ConfigClientProperties;
 import org.springframework.cloud.config.client.ConfigServicePropertySourceLocator;
-import org.springframework.cloud.service.common.MysqlServiceInfo;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
@@ -29,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
 
 import static io.pivotal.config.LocalConfigFileEnvironmentProcessor.APPLICATION_CONFIGURATION_PROPERTY_SOURCE_NAME;
@@ -42,12 +37,14 @@ public class TomcatConfigurer {
 
     private final TomcatLaunchHelper tomcatLaunchHelper = new TomcatLaunchHelper();
 
-    private static final Object monitor = new Object();
-
-    private static volatile Cloud cloud;
-
     public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
-        File root = tomcatLaunchHelper.getRootFolder("/build/libs/");
+        String buildLibDir = null;
+        String buildClassDir = null;
+        if (isGradle()) {
+            buildLibDir = "/build/libs/";
+            buildClassDir = "build/classes/main";
+        }
+        File root = tomcatLaunchHelper.getRootFolder(buildLibDir);
         System.setProperty("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE", "true");
         Path tempPath = Files.createTempDirectory("tomcat-base-dir");
         tomcat.setBaseDir(tempPath.toString());
@@ -82,7 +79,7 @@ public class TomcatConfigurer {
 
         // Declare an alternative location for your "WEB-INF/classes" dir
         // Servlet 3.0 annotation will work
-        File additionWebInfClassesFolder = new File(root.getAbsolutePath(), "build/classes/main");
+        File additionWebInfClassesFolder = new File(root.getAbsolutePath(), buildClassDir);
         WebResourceRoot resources = new StandardRoot(ctx);
 
         WebResourceSet resourceSet;
@@ -103,44 +100,22 @@ public class TomcatConfigurer {
         return ctx;
     }
 
-    ContextResource getResource(String serviceName) {
-        Map<String, Object> credentials = new HashMap<String, Object>();
-        Cloud cloud = getCloudInstance();
-        if (cloud != null) {
-            System.out.println("We're in the cloud!");
-            MysqlServiceInfo service = (MysqlServiceInfo) cloud.getServiceInfo(serviceName);
-            credentials.put("jdbcUrl", service.getJdbcUrl());
-            credentials.put("username", service.getUserName());
-            credentials.put("password", service.getPassword());
-        }
-        credentials.put("serviceName", PREFIX_JDBC + serviceName);
-        credentials.put("driverClassName", "com.mysql.cj.jdbc.Driver");
+    //TODO add Gradle detection logic
+    private boolean isGradle() {
+        //CHECK IF GRADLE or MAVEN
+        return true;
+    }
 
+    public ContextResource getResource(Map<String, Object> credentials) {
         return tomcatLaunchHelper.getResource(credentials);
     }
 
-    ContextEnvironment getEnvironment(PropertySource source, String name) {
+    public ContextEnvironment getEnvironment(PropertySource source, String name) {
         return tomcatLaunchHelper.getEnvironment(name, source.getProperty(name).toString());
     }
 
-    private static Cloud getCloudInstance() {
-        if (null == cloud) {
-            synchronized (monitor) {
-                if (null == cloud) {
-                    try {
-                        cloud = new CloudFactory().getCloud();
-                    } catch (CloudException e) {
-                        //ignore
-                        return null;
-                    }
-                }
-            }
-        }
-        return cloud;
-    }
-
     public PropertySource loadConfiguration(String configServerUrl) {
-        return new ConfigurationLoader().loadConfiguration(configServerUrl);
+        return new ConfigurationLoader().load(configServerUrl);
     }
 
     static class ConfigurationLoader {
@@ -159,7 +134,7 @@ public class TomcatConfigurer {
 
         ConfigurationLoader() {}
 
-        PropertySource loadConfiguration(String configServerUrl) {
+        PropertySource load(String configServerUrl) {
             if (configServerUrl == null || configServerUrl.isEmpty()) {
                 throw new RuntimeException("You MUST set the config server URI");
             }

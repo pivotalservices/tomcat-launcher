@@ -1,0 +1,51 @@
+buildscript {
+    ext {
+        buildNrLoc = project.hasProperty('buildNr') ? "${buildNr}" : "0.0.1-SNAPSHOT"
+    }
+    repositories {
+        mavenLocal()
+        jcenter()
+        mavenCentral()
+        maven { url 'https://repo.spring.io/plugins-release' }
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+
+group = 'io.pivotal'
+version = buildNrLoc
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+repositories {
+    mavenLocal()
+    jcenter()
+    mavenCentral()
+    maven { url "https://repo.spring.io/release" }
+    maven { url "https://repo.spring.io/milestone" }
+}
+
+dependencies {
+    compile("org.apache.tomcat.embed:tomcat-embed-core:${tomcatVersion}")
+    compile("org.apache.tomcat.embed:tomcat-embed-logging-juli:${tomcatVersion}")
+    compile("org.apache.tomcat.embed:tomcat-embed-jasper:${tomcatVersion}")
+    compile("org.apache.tomcat:tomcat-jasper:${tomcatVersion}")
+    compile("org.apache.tomcat:tomcat-jasper-el:${tomcatVersion}")
+    compile("org.apache.tomcat:tomcat-jsp-api:${tomcatVersion}")
+    compile("org.apache.tomcat:tomcat-jdbc:${tomcatVersion}")
+
+    // If you intend to deploy the app to Cloud Foundry
+    compile("org.springframework.cloud:spring-cloud-cloudfoundry-connector:1.2.3.RELEASE")
+    // To use Spring Cloud Connectors for development
+    compile("org.springframework.cloud:spring-cloud-localconfig-connector:1.2.3.RELEASE")
+
+    compile("org.springframework.cloud:spring-cloud-config-client:1.2.3.RELEASE")
+
+    runtime('mysql:mysql-connector-java:6.0.5')
+    runtime("org.apache.tomcat:tomcat-dbcp:${tomcatVersion}")
+
+    testCompile("junit:junit:4.12")
+}

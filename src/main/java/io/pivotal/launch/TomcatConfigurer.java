@@ -115,10 +115,12 @@ public class TomcatConfigurer {
     }
 
     public ContextResource getResource(Map<String, Object> credentials) {
-        return tomcatLaunchHelper.getResource(credentials);
+        return tomcatLaunchHelper.createContainerDataSource(credentials);
     }
 
     public ContextEnvironment getEnvironment(PropertySource source, String name) {
+        Assert.notNull(source, "PropertySource cannot be null");
+        Assert.notNull(source.getProperty(name), "Cannot find property with name: '" + "'");
         return tomcatLaunchHelper.getEnvironment(name, source.getProperty(name).toString());
     }
 

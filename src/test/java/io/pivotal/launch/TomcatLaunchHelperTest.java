@@ -11,7 +11,7 @@ public class TomcatLaunchHelperTest {
     @Test(expected = NullPointerException.class)
     public void testGetResource() throws Exception {
         TomcatLaunchHelper helper = new TomcatLaunchHelper();
-        helper.getResource(new HashMap<>());
+        helper.createContainerDataSource(new HashMap<>());
     }
 
     @Test

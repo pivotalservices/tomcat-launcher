@@ -16,26 +16,19 @@ import static org.junit.Assert.assertThat;
 public class TomcatConfigurerTest {
 
     @Rule
-    public final EnvironmentVariables environmentVariables
-            = new EnvironmentVariables();
-
-    @Test(expected = RuntimeException.class)
-    public void testRunWithNoConfigServerUrl() throws Exception {
-        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer();
-        tomcatConfigurer.loadConfiguration("", "application", new String[] {"default"});
-    }
+    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     @Test
     public void testLoadConfiguration() throws Exception {
-        ConfigurationLoader loader = () -> new PropertySource.StubPropertySource("test");
-        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer(loader);
-        PropertySource source = tomcatConfigurer.loadConfiguration(null, "application", new String[] {"default"});
+        ConfigurationLoader loader = (app, profiles) -> new PropertySource.StubPropertySource("test");
+        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888", loader);
+        PropertySource source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
         assertThat(source, instanceOf(PropertySource.StubPropertySource.class));
     }
 
     @Test
     public void testCreateStandardContext() throws Exception {
-        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer();
+        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888");
         Tomcat tomcat = new Tomcat();
         StandardContext ctx = tomcatConfigurer.createStandardContext(tomcat);
         Assert.assertNotNull(ctx);
@@ -43,8 +36,8 @@ public class TomcatConfigurerTest {
 
     @Test
     public void testLoadLocalConfigurationFromConfigServer() throws Exception {
-        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer();
-        PropertySource source = tomcatConfigurer.loadConfiguration("http://localhost:8888", "application", new String[] {"default"});
+        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888");
+        PropertySource source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
         Assert.assertNotNull(source);
         ContextEnvironment ctxEnv = tomcatConfigurer.getEnvironment(source, "foo");
         assertEquals(ctxEnv.getValue(), "baz");
@@ -52,8 +45,8 @@ public class TomcatConfigurerTest {
 
     @Test
     public void testLoadLocalConfigurationFromFile() throws Exception {
-        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer();
-        PropertySource source = tomcatConfigurer.loadConfiguration("http://bogus", "application", new String[] {"default"});
+        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://bogus");
+        PropertySource source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
         Assert.assertNotNull(source);
         ContextEnvironment ctxEnv = tomcatConfigurer.getEnvironment(source, "foo");
         assertEquals(ctxEnv.getValue(), "mark_laptop");
@@ -61,10 +54,10 @@ public class TomcatConfigurerTest {
 
     @Test
     public void testLoadEnvironmentVariableFromConfigServer() throws Exception {
-        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer();
+        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888");
         environmentVariables.set("CONFIG_TEST", "foobar");
         assertEquals("foobar", System.getenv("CONFIG_TEST"));
-        PropertySource source = tomcatConfigurer.loadConfiguration("http://localhost:8888", "application", new String[] {"default"});
+        PropertySource source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
         Assert.assertNotNull(source);
         ContextEnvironment ctxEnv = tomcatConfigurer.getEnvironment(source, "CONFIG_TEST");
         assertEquals(ctxEnv.getValue(), "foobar");

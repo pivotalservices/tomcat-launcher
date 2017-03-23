@@ -25,118 +25,146 @@ import java.util.Map;
 
 public class TomcatConfigurer {
 
-    private final TomcatLaunchHelper tomcatLaunchHelper = new TomcatLaunchHelper();
+	private final TomcatLaunchHelper tomcatLaunchHelper = new TomcatLaunchHelper();
 
-    private ConfigurationLoader configurationLoader = null;
+	private ConfigurationLoader configurationLoader = null;
 
-    private String buildClassDir = null;
+	private String buildClassDir = null;
 
-    private String relativeWebContentFolder = null;
+	private String relativeWebContentFolder = null;
 
-    private String additionalLibFolder = null;
+	private String additionalLibFolder = null;
 
-    private TomcatConfigurer() {
-        this.buildClassDir = "build/classes/main";
-        this.relativeWebContentFolder = "src/main/resources/";
-    }
+	private String pathToWebXml = null;
 
-    public TomcatConfigurer(final String configServerUrl) {
-        this();
-        this.configurationLoader = new DefaultConfigurationLoader(configServerUrl);
-    }
+	private TomcatConfigurer() {
+		this.buildClassDir = "build/classes/main";
+		this.relativeWebContentFolder = "src/main/resources/";
+	}
 
-    public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader loader) {
-        this(configServerUrl);
-        Assert.notNull(loader);
-        this.configurationLoader = loader;
-    }
+	public TomcatConfigurer(final String configServerUrl) {
+		this();
+		this.configurationLoader = new DefaultConfigurationLoader(configServerUrl);
+	}
 
-    public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader configurationLoader, final String relativeWebContentFolder, final String buildClassDir, final String additionalLibFolder) {
-        this(configServerUrl, configurationLoader);
-        Assert.notNull(buildClassDir);
-        Assert.notNull(relativeWebContentFolder);
-        this.buildClassDir = buildClassDir;
-        this.relativeWebContentFolder = relativeWebContentFolder;
-        this.additionalLibFolder = additionalLibFolder;
-    }
+	public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader loader) {
+		this(configServerUrl);
+		Assert.notNull(loader);
+		this.configurationLoader = loader;
+	}
 
-    public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
-        File root = tomcatLaunchHelper.getRootFolder(relativeWebContentFolder);
-        System.setProperty("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE", "true");
-        Path tempPath = Files.createTempDirectory("tomcat-base-dir");
-        tomcat.setBaseDir(tempPath.toString());
+	public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
+		File root = tomcatLaunchHelper.getRootFolder(relativeWebContentFolder);
+		System.setProperty("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE", "true");
+		Path tempPath = Files.createTempDirectory("tomcat-base-dir");
+		tomcat.setBaseDir(tempPath.toString());
 
-        //The port that we should run on can be set into an environment variable
-        //Look for that variable and default to 8080 if it isn't there.
-        String webPort = System.getenv("PORT");
-        if (webPort == null || webPort.isEmpty()) {
-            webPort = "8080";
-        }
-        tomcat.setPort(Integer.valueOf(webPort));
+		// The port that we should run on can be set into an environment
+		// variable
+		// Look for that variable and default to 8080 if it isn't there.
+		String webPort = System.getenv("PORT");
+		if (webPort == null || webPort.isEmpty()) {
+			webPort = "8080";
+		}
+		tomcat.setPort(Integer.valueOf(webPort));
 
-        File webContentFolder = new File(root.getAbsolutePath(), relativeWebContentFolder);
-        if (!webContentFolder.exists()) {
-            //webContentFolder = Files.createTempDirectory("default-doc-base").toFile();
-            webContentFolder = new File(root.getAbsolutePath());
-        }
-        System.out.println("webContentFolder is '" + webContentFolder.getAbsolutePath() + "'");
-        StandardContext ctx = (StandardContext) tomcat.addWebapp("", webContentFolder.getAbsolutePath());
+		File webContentFolder = new File(root.getAbsolutePath(), relativeWebContentFolder);
+		if (!webContentFolder.exists()) {
+			// webContentFolder =
+			// Files.createTempDirectory("default-doc-base").toFile();
+			webContentFolder = new File(root.getAbsolutePath());
+		}
+		System.out.println("webContentFolder is '" + webContentFolder.getAbsolutePath() + "'");
+		StandardContext ctx = (StandardContext) tomcat.addWebapp("", webContentFolder.getAbsolutePath());
+		if (pathToWebXml != null && new File(pathToWebXml).exists()) {
+			ctx.setDefaultWebXml(pathToWebXml);
+		} else {
+			ctx.setDefaultWebXml("org/apache/catalin/startup/NO_DEFAULT_XML");
+		}
 
-        //Set execution independent of current thread context classloader (compatibility with exec:java mojo)
-        ctx.setParentClassLoader(TomcatLaunchHelper.class.getClassLoader());
+		// Set execution independent of current thread context classloader
+		// (compatibility with exec:java mojo)
+		ctx.setParentClassLoader(TomcatLaunchHelper.class.getClassLoader());
 
-        //Disable TLD scanning by default
-        if (System.getProperty(Constants.SKIP_JARS_PROPERTY) == null && System.getProperty(Constants.SKIP_JARS_PROPERTY) == null) {
-            System.out.println("disabling TLD scanning");
-            StandardJarScanFilter jarScanFilter = (StandardJarScanFilter) ctx.getJarScanner().getJarScanFilter();
-            jarScanFilter.setTldSkip("*");
-        }
+		// Disable TLD scanning by default
+		if (System.getProperty(Constants.SKIP_JARS_PROPERTY) == null
+				&& System.getProperty(Constants.SKIP_JARS_PROPERTY) == null) {
+			System.out.println("disabling TLD scanning");
+			StandardJarScanFilter jarScanFilter = (StandardJarScanFilter) ctx.getJarScanner().getJarScanFilter();
+			jarScanFilter.setTldSkip("*");
+		}
 
-        System.out.println("configuring app with basedir: " + webContentFolder.getAbsolutePath());
+		System.out.println("configuring app with basedir: " + webContentFolder.getAbsolutePath());
 
-        // Declare an alternative location for your "WEB-INF/classes" dir
-        // Servlet 3.0 annotation will work
-        File additionWebInfClassesFolder = new File(root.getAbsolutePath(), buildClassDir);
-        WebResourceRoot resources = new StandardRoot(ctx);
-        resources.addPreResources(addAdditionalWebInfResources(root, "/WEB-INF/classes", additionWebInfClassesFolder, resources));
-        if (additionalLibFolder != null) {
-            File additionWebInfLibFolder = new File(root.getAbsolutePath(), additionalLibFolder);
-            resources.addPreResources(addAdditionalWebInfResources(root, "/WEB-INF/lib", additionWebInfLibFolder, resources));
-        }
+		// Declare an alternative location for your "WEB-INF/classes" dir
+		// Servlet 3.0 annotation will work
+		File additionWebInfClassesFolder = new File(root.getAbsolutePath(), buildClassDir);
+		WebResourceRoot resources = new StandardRoot(ctx);
+		resources.addPreResources(
+				addAdditionalWebInfResources(root, "/WEB-INF/classes", additionWebInfClassesFolder, resources));
+		if (additionalLibFolder != null) {
+			File additionWebInfLibFolder = new File(root.getAbsolutePath(), additionalLibFolder);
+			resources.addPreResources(
+					addAdditionalWebInfResources(root, "/WEB-INF/lib", additionWebInfLibFolder, resources));
+		}
 
-        ctx.setResources(resources);
-        return ctx;
-    }
+		ctx.setResources(resources);
+		return ctx;
+	}
 
-    private WebResourceSet addAdditionalWebInfResources(File root, String webAppMount, File additionWebInfClassesFolder, WebResourceRoot resources) {
-        WebResourceSet resourceSet;
-        if (additionWebInfClassesFolder.exists()) {
-            resourceSet = new DirResourceSet(resources, webAppMount, additionWebInfClassesFolder.getAbsolutePath(), "/");
-            System.out.println("loading " + webAppMount + " from '" + additionWebInfClassesFolder.getAbsolutePath() + "'");
-        } else {
-            additionWebInfClassesFolder = new File(root.getAbsolutePath());
-            if (additionWebInfClassesFolder.exists()) {
-                resourceSet = new DirResourceSet(resources, webAppMount, additionWebInfClassesFolder.getAbsolutePath(), "/");
-                System.out.println("loading " + webAppMount + " from '" + additionWebInfClassesFolder.getAbsolutePath() + "'");
-            } else {
-                resourceSet = new EmptyResourceSet(resources);
-            }
-        }
-        return resourceSet;
-    }
+	private WebResourceSet addAdditionalWebInfResources(File root, String webAppMount, File additionWebInfClassesFolder,
+			WebResourceRoot resources) {
+		WebResourceSet resourceSet;
+		if (additionWebInfClassesFolder.exists()) {
+			resourceSet = new DirResourceSet(resources, webAppMount, additionWebInfClassesFolder.getAbsolutePath(),
+					"/");
+			System.out.println(
+					"loading " + webAppMount + " from '" + additionWebInfClassesFolder.getAbsolutePath() + "'");
+		} else {
+			additionWebInfClassesFolder = new File(root.getAbsolutePath());
+			if (additionWebInfClassesFolder.exists()) {
+				resourceSet = new DirResourceSet(resources, webAppMount, additionWebInfClassesFolder.getAbsolutePath(),
+						"/");
+				System.out.println(
+						"loading " + webAppMount + " from '" + additionWebInfClassesFolder.getAbsolutePath() + "'");
+			} else {
+				resourceSet = new EmptyResourceSet(resources);
+			}
+		}
+		return resourceSet;
+	}
 
-    public ContextResource getResource(Map<String, Object> credentials) {
-        return tomcatLaunchHelper.createContainerDataSource(credentials);
-    }
+	public ContextResource getResource(Map<String, Object> credentials) {
+		return tomcatLaunchHelper.createContainerDataSource(credentials);
+	}
 
-    public ContextEnvironment getEnvironment(PropertySource source, String name) {
-        Assert.notNull(source, "PropertySource cannot be null");
-        Assert.notNull(source.getProperty(name), "Cannot find property with name: '" + name + "'");
-        return tomcatLaunchHelper.getEnvironment(name, source.getProperty(name).toString());
-    }
+	public ContextEnvironment getEnvironment(PropertySource<?> source, String name) {
+		Assert.notNull(source, "PropertySource cannot be null");
+		Assert.notNull(source.getProperty(name), "Cannot find property with name: '" + name + "'");
+		return tomcatLaunchHelper.getEnvironment(name, source.getProperty(name).toString());
+	}
 
-    public PropertySource loadConfiguration(String appName, String[] profiles) {
-        return this.configurationLoader.load(appName, profiles);
-    }
+	public PropertySource<?> loadConfiguration(String appName, String[] profiles) {
+		return this.configurationLoader.load(appName, profiles);
+	}
+
+	public final void setBuildClassDir(String buildClassDir) {
+		this.buildClassDir = buildClassDir;
+	}
+
+	public final void setRelativeWebContentFolder(String relativeWebContentFolder) {
+		Assert.notNull(relativeWebContentFolder);
+		this.relativeWebContentFolder = relativeWebContentFolder;
+	}
+
+	public final void setAdditionalLibFolder(String additionalLibFolder) {
+		Assert.notNull(additionalLibFolder);
+		this.additionalLibFolder = additionalLibFolder;
+	}
+
+	public final void setPathToGlobalWebXml(String pathToGlobalWebXml) {
+		Assert.notNull(pathToGlobalWebXml);
+		this.pathToWebXml = pathToGlobalWebXml;
+	}
 
 }

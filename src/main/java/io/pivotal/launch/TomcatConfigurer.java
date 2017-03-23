@@ -6,8 +6,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
 import javax.servlet.ServletException;
 
@@ -41,29 +39,15 @@ public class TomcatConfigurer {
 	private String additionalLibFolder = null;
 
 	private String pathToWebXml = null;
-	
+
 	private String webappPath = null;
 
-	public final void setWebappPath(String webappPath) {
-		this.webappPath = webappPath;
-	}
-
-	private TomcatConfigurer() {
+	public TomcatConfigurer(final String configServerUrl, final String app, final String[] profiles) {
 		this.buildClassDir = "build/classes/main";
 		this.relativeWebContentFolder = "src/main/resources/";
+		this.configurationLoader = new DefaultConfigurationLoader(configServerUrl, app, profiles);
 	}
-
-	public TomcatConfigurer(final String configServerUrl) {
-		this();
-		this.configurationLoader = new DefaultConfigurationLoader(configServerUrl);
-	}
-
-	public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader loader) {
-		this(configServerUrl);
-		Assert.notNull(loader);
-		this.configurationLoader = loader;
-	}
-
+	
 	public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
 		File root = tomcatLaunchHelper.getRootFolder(relativeWebContentFolder);
 		System.setProperty("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE", "true");
@@ -92,12 +76,13 @@ public class TomcatConfigurer {
 		} else {
 			ctx.setDefaultWebXml("org/apache/catalin/startup/NO_DEFAULT_XML");
 		}
-		
+
+		System.out.println("webappPath is '" + webappPath + "'");
 		if (webappPath != null) {
 			File contextXmlFile = new File(webappPath + "/META-INF/context.xml");
-		    if (contextXmlFile != null && contextXmlFile.exists()) {
-		        ctx.setConfigFile(new URL(contextXmlFile.getAbsolutePath()));
-		    }
+			if (contextXmlFile != null && contextXmlFile.exists()) {
+				ctx.setConfigFile(new URL("file://" + contextXmlFile.getAbsolutePath()));
+			}
 		}
 
 		// Set execution independent of current thread context classloader
@@ -162,8 +147,16 @@ public class TomcatConfigurer {
 		return tomcatLaunchHelper.getEnvironment(name, source.getProperty(name).toString());
 	}
 
-	public PropertySource<?> loadConfiguration(String appName, String[] profiles) {
-		return this.configurationLoader.load(appName, profiles);
+	public PropertySource<?> loadConfiguration() {
+		return this.configurationLoader.load();
+	}
+
+	public final ConfigurationLoader getConfigurationLoader() {
+		return configurationLoader;
+	}
+
+	public final void setConfigurationLoader(ConfigurationLoader configurationLoader) {
+		this.configurationLoader = configurationLoader;
 	}
 
 	public final void setBuildClassDir(String buildClassDir) {
@@ -180,9 +173,13 @@ public class TomcatConfigurer {
 		this.additionalLibFolder = additionalLibFolder;
 	}
 
-	public final void setPathToGlobalWebXml(String pathToGlobalWebXml) {
-		Assert.notNull(pathToGlobalWebXml);
-		this.pathToWebXml = pathToGlobalWebXml;
+	public final void setPathToWebXml(String pathToWebXml) {
+		Assert.notNull(pathToWebXml);
+		this.pathToWebXml = pathToWebXml;
+	}
+
+	public final void setWebappPath(String webappPath) {
+		this.webappPath = webappPath;
 	}
 
 }

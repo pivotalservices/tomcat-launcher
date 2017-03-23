@@ -23,7 +23,6 @@ public class LocalConfigFileEnvironmentProcessor extends ConfigFileApplicationLi
 
     private ResourceLoader resourceLoader;
 
-
     public LocalConfigFileEnvironmentProcessor() {
         this.resourceLoader = new DefaultResourceLoader(this.getClassLoader());
     }

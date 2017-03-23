@@ -23,7 +23,7 @@ public class TomcatConfigurerTest {
     public void testLoadConfiguration() throws Exception {
         ConfigurationLoader loader = (app, profiles) -> new PropertySource.StubPropertySource("test");
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888", loader);
-        PropertySource source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
+        PropertySource<?> source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
         assertThat(source, instanceOf(PropertySource.StubPropertySource.class));
     }
 
@@ -38,7 +38,7 @@ public class TomcatConfigurerTest {
     @Test
     public void testLoadLocalConfigurationFromConfigServer() throws Exception {
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888");
-        PropertySource source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
+        PropertySource<?> source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
         Assert.assertNotNull(source);
         ContextEnvironment ctxEnv = tomcatConfigurer.getEnvironment(source, "foo");
         assertEquals(ctxEnv.getValue(), "baz");
@@ -47,7 +47,7 @@ public class TomcatConfigurerTest {
     @Test
     public void testLoadLocalConfigurationFromFile() throws Exception {
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://bogus");
-        PropertySource source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
+        PropertySource<?> source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
         Assert.assertNotNull(source);
         ContextEnvironment ctxEnv = tomcatConfigurer.getEnvironment(source, "foo");
         assertEquals(ctxEnv.getValue(), "mark_laptop");
@@ -58,7 +58,7 @@ public class TomcatConfigurerTest {
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888");
         environmentVariables.set("CONFIG_TEST", "foobar");
         assertEquals("foobar", System.getenv("CONFIG_TEST"));
-        PropertySource source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
+        PropertySource<?> source = tomcatConfigurer.loadConfiguration("application", new String[] {"default"});
         Assert.assertNotNull(source);
         ContextEnvironment ctxEnv = tomcatConfigurer.getEnvironment(source, "CONFIG_TEST");
         assertEquals(ctxEnv.getValue(), "foobar");

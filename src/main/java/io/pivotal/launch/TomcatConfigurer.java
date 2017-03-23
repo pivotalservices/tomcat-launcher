@@ -1,7 +1,16 @@
 package io.pivotal.launch;
 
-import io.pivotal.config.ConfigurationLoader;
-import io.pivotal.config.DefaultConfigurationLoader;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+
+import javax.servlet.ServletException;
+
 import org.apache.catalina.WebResourceRoot;
 import org.apache.catalina.WebResourceSet;
 import org.apache.catalina.core.StandardContext;
@@ -16,12 +25,8 @@ import org.apache.tomcat.util.scan.StandardJarScanFilter;
 import org.springframework.core.env.PropertySource;
 import org.springframework.util.Assert;
 
-import javax.servlet.ServletException;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Map;
+import io.pivotal.config.ConfigurationLoader;
+import io.pivotal.config.DefaultConfigurationLoader;
 
 public class TomcatConfigurer {
 
@@ -36,6 +41,12 @@ public class TomcatConfigurer {
 	private String additionalLibFolder = null;
 
 	private String pathToWebXml = null;
+	
+	private String webappPath = null;
+
+	public final void setWebappPath(String webappPath) {
+		this.webappPath = webappPath;
+	}
 
 	private TomcatConfigurer() {
 		this.buildClassDir = "build/classes/main";
@@ -80,6 +91,15 @@ public class TomcatConfigurer {
 			ctx.setDefaultWebXml(pathToWebXml);
 		} else {
 			ctx.setDefaultWebXml("org/apache/catalin/startup/NO_DEFAULT_XML");
+		}
+		
+		if (webappPath != null) {
+			@SuppressWarnings("resource")
+			JarFile webappWarFile = new JarFile(webappPath);
+		    JarEntry contextXmlFileEntry = webappWarFile.getJarEntry("META-INF/context.xml");
+		    if (contextXmlFileEntry != null) {
+		        ctx.setConfigFile(new URL("jar:file:" + webappPath + "!/" + "META-INF/context.xml"));
+		    }
 		}
 
 		// Set execution independent of current thread context classloader

@@ -29,14 +29,13 @@ public class TomcatConfigurer {
 
     private ConfigurationLoader configurationLoader = null;
 
-    private String buildLibDir = null;
-
     private String buildClassDir = null;
 
     private String relativeWebContentFolder = null;
 
+    private String additionalLibFolder = null;
+
     private TomcatConfigurer() {
-        this.buildLibDir = "/build/libs/";
         this.buildClassDir = "build/classes/main";
         this.relativeWebContentFolder = "src/main/resources/";
     }
@@ -52,18 +51,17 @@ public class TomcatConfigurer {
         this.configurationLoader = loader;
     }
 
-    public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader configurationLoader, final String relativeWebContentFolder, final String buildClassDir, final String buildLibDir) {
+    public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader configurationLoader, final String relativeWebContentFolder, final String buildClassDir, final String additionalLibFolder) {
         this(configServerUrl, configurationLoader);
         Assert.notNull(buildClassDir);
-        Assert.notNull(buildLibDir);
         Assert.notNull(relativeWebContentFolder);
         this.buildClassDir = buildClassDir;
-        this.buildLibDir = buildLibDir;
         this.relativeWebContentFolder = relativeWebContentFolder;
+        this.additionalLibFolder = additionalLibFolder;
     }
 
     public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
-        File root = tomcatLaunchHelper.getRootFolder(buildLibDir);
+        File root = tomcatLaunchHelper.getRootFolder(relativeWebContentFolder);
         System.setProperty("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE", "true");
         Path tempPath = Files.createTempDirectory("tomcat-base-dir");
         tomcat.setBaseDir(tempPath.toString());
@@ -100,23 +98,31 @@ public class TomcatConfigurer {
         // Servlet 3.0 annotation will work
         File additionWebInfClassesFolder = new File(root.getAbsolutePath(), buildClassDir);
         WebResourceRoot resources = new StandardRoot(ctx);
+        resources.addPreResources(addAdditionalWebInfResources(root, "/WEB-INF/classes", additionWebInfClassesFolder, resources));
+        if (additionalLibFolder != null) {
+            File additionWebInfLibFolder = new File(root.getAbsolutePath(), additionalLibFolder);
+            resources.addPreResources(addAdditionalWebInfResources(root, "/WEB-INF/lib", additionWebInfLibFolder, resources));
+        }
 
+        ctx.setResources(resources);
+        return ctx;
+    }
+
+    private WebResourceSet addAdditionalWebInfResources(File root, String webAppMount, File additionWebInfClassesFolder, WebResourceRoot resources) {
         WebResourceSet resourceSet;
         if (additionWebInfClassesFolder.exists()) {
-            resourceSet = new DirResourceSet(resources, "/WEB-INF/classes", additionWebInfClassesFolder.getAbsolutePath(), "/");
-            System.out.println("loading WEB-INF/classes from '" + additionWebInfClassesFolder.getAbsolutePath() + "'");
+            resourceSet = new DirResourceSet(resources, webAppMount, additionWebInfClassesFolder.getAbsolutePath(), "/");
+            System.out.println("loading " + webAppMount + " from '" + additionWebInfClassesFolder.getAbsolutePath() + "'");
         } else {
             additionWebInfClassesFolder = new File(root.getAbsolutePath());
             if (additionWebInfClassesFolder.exists()) {
-                resourceSet = new DirResourceSet(resources, "/WEB-INF/classes", additionWebInfClassesFolder.getAbsolutePath(), "/");
-                System.out.println("loading WEB-INF/classes from '" + additionWebInfClassesFolder.getAbsolutePath() + "'");
+                resourceSet = new DirResourceSet(resources, webAppMount, additionWebInfClassesFolder.getAbsolutePath(), "/");
+                System.out.println("loading " + webAppMount + " from '" + additionWebInfClassesFolder.getAbsolutePath() + "'");
             } else {
                 resourceSet = new EmptyResourceSet(resources);
             }
         }
-        resources.addPreResources(resourceSet);
-        ctx.setResources(resources);
-        return ctx;
+        return resourceSet;
     }
 
     public ContextResource getResource(Map<String, Object> credentials) {

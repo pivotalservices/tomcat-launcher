@@ -94,11 +94,9 @@ public class TomcatConfigurer {
 		}
 		
 		if (webappPath != null) {
-			@SuppressWarnings("resource")
-			JarFile webappWarFile = new JarFile(webappPath);
-		    JarEntry contextXmlFileEntry = webappWarFile.getJarEntry("META-INF/context.xml");
-		    if (contextXmlFileEntry != null) {
-		        ctx.setConfigFile(new URL("jar:file:" + webappPath + "!/" + "META-INF/context.xml"));
+			File contextXmlFile = new File(webappPath + "/META-INF/context.xml");
+		    if (contextXmlFile != null && contextXmlFile.exists()) {
+		        ctx.setConfigFile(new URL(contextXmlFile.getAbsolutePath()));
 		    }
 		}
 

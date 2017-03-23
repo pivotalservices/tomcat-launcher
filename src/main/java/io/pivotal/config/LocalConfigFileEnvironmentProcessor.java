@@ -24,7 +24,7 @@ import java.util.*;
  * @see org.springframework.boot.context.config.ConfigFileApplicationListener
  */
 public class LocalConfigFileEnvironmentProcessor {
-    private static final String DEFAULT_PROPERTIES = "defaultProperties";
+    public static final String DEFAULT_PROPERTIES = "defaultProperties";
 
     // Note the order is from least to most specific (last one wins)
     private static final String DEFAULT_SEARCH_LOCATIONS = "classpath:/,classpath:/config/,file:./,file:./config/";

@@ -15,6 +15,7 @@ import org.apache.tomcat.util.scan.StandardJarScanFilter;
 import org.springframework.cloud.config.client.ConfigClientProperties;
 import org.springframework.cloud.config.client.ConfigServicePropertySourceLocator;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.util.Assert;
@@ -26,9 +27,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 
 import static io.pivotal.config.LocalConfigFileEnvironmentProcessor.APPLICATION_CONFIGURATION_PROPERTY_SOURCE_NAME;
+import static io.pivotal.config.LocalConfigFileEnvironmentProcessor.DEFAULT_PROPERTIES;
 
 /**
  * Created by malston on 3/20/17.
@@ -37,21 +40,32 @@ public class TomcatConfigurer {
 
     private final TomcatLaunchHelper tomcatLaunchHelper = new TomcatLaunchHelper();
 
+//    private final ConfigurableEnvironment environment = new StandardEnvironment();
+
     private ConfigurationLoader configurationLoader = null;
 
-    public TomcatConfigurer() {}
+    public TomcatConfigurer() {
+    }
+
+    private String buildLibDir = null;
+
+    private String buildClassDir = null;
 
     public TomcatConfigurer(ConfigurationLoader configurationLoader) {
         this.configurationLoader = configurationLoader;
+        this.buildLibDir = "/build/libs/";
+        this.buildClassDir = "build/classes/main";
+    }
+
+    public TomcatConfigurer(ConfigurationLoader configurationLoader, final String buildClassDir, final String buildLibDir) {
+        this.configurationLoader = configurationLoader;
+        Assert.notNull(buildClassDir);
+        Assert.notNull(buildLibDir);
+        this.buildClassDir = buildClassDir;
+        this.buildLibDir = buildLibDir;
     }
 
     public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
-        String buildLibDir = null;
-        String buildClassDir = null;
-        if (isGradle()) {
-            buildLibDir = "/build/libs/";
-            buildClassDir = "build/classes/main";
-        }
         File root = tomcatLaunchHelper.getRootFolder(buildLibDir);
         System.setProperty("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE", "true");
         Path tempPath = Files.createTempDirectory("tomcat-base-dir");
@@ -124,9 +138,9 @@ public class TomcatConfigurer {
         return tomcatLaunchHelper.getEnvironment(name, source.getProperty(name).toString());
     }
 
-    public PropertySource loadConfiguration(String configServerUrl) {
+    public PropertySource loadConfiguration(String configServerUrl, String appName, String[] profiles) {
         if (this.configurationLoader == null) {
-            return new DefaultConfigurationLoader(configServerUrl).load();
+            return new DefaultConfigurationLoader(configServerUrl, appName, profiles).load();
         }
         return this.configurationLoader.load();
     }
@@ -137,11 +151,11 @@ public class TomcatConfigurer {
 
         private static final String HTTP_SCHEME = "http://";
 
-        private final ConfigurableEnvironment environment = new StandardEnvironment();
+        private ConfigurableEnvironment environment = null;
 
-        private final ConfigClientProperties defaults = new ConfigClientProperties(this.environment);
+        private ConfigClientProperties defaults = null;
 
-        private final ConfigServicePropertySourceLocator locator = new ConfigServicePropertySourceLocator(defaults);
+        private ConfigServicePropertySourceLocator locator = null;
 
         private final RestTemplate restTemplate = new RestTemplate();
 
@@ -149,14 +163,23 @@ public class TomcatConfigurer {
 
         private String configServerUrl = null;
 
-        DefaultConfigurationLoader(final String configServerUrl) {
+        DefaultConfigurationLoader(final String configServerUrl, final String app, final String[] profiles) {
             Assert.hasLength(configServerUrl, "You MUST set the config server URI");
             if (!configServerUrl.startsWith(HTTP_SCHEME) && !configServerUrl.startsWith(HTTPS_SCHEME)) {
                 throw new RuntimeException("You MUST put the URI scheme in front of the config server URI");
             }
             this.configServerUrl = configServerUrl;
+            this.environment = new StandardEnvironment();
+            Map<String, Object> defaultProperties = new HashMap<>();
+            defaultProperties.put("spring.application.name", app);
+            this.environment.getPropertySources().addFirst(new MapPropertySource(DEFAULT_PROPERTIES, defaultProperties));
+            for (String profile : profiles) {
+                this.environment.addActiveProfile(profile);
+            }
+            this.defaults = new ConfigClientProperties(environment);
             this.defaults.setFailFast(false);
             this.defaults.setUri(this.configServerUrl);
+            this.locator = new ConfigServicePropertySourceLocator(defaults);
             DefaultUriTemplateHandler uriTemplateHandler = new DefaultUriTemplateHandler();
             uriTemplateHandler.setBaseUrl(this.configServerUrl);
             this.restTemplate.setUriTemplateHandler(uriTemplateHandler);

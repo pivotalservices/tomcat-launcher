@@ -33,9 +33,12 @@ public class TomcatConfigurer {
 
     private String buildClassDir = null;
 
+    private String relativeWebContentFolder = null;
+
     private TomcatConfigurer() {
         this.buildLibDir = "/build/libs/";
         this.buildClassDir = "build/classes/main";
+        this.relativeWebContentFolder = "src/main/resources/";
     }
     public TomcatConfigurer(final String configServerUrl) {
         this();
@@ -48,12 +51,13 @@ public class TomcatConfigurer {
         this.configurationLoader = loader;
     }
 
-    public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader configurationLoader, final String buildClassDir, final String buildLibDir) {
+    public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader configurationLoader, final String relativeWebContentFolder, final String buildClassDir, final String buildLibDir) {
         this(configServerUrl, configurationLoader);
         Assert.notNull(buildClassDir);
         Assert.notNull(buildLibDir);
         this.buildClassDir = buildClassDir;
         this.buildLibDir = buildLibDir;
+        this.relativeWebContentFolder = relativeWebContentFolder;
     }
 
     public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
@@ -70,7 +74,7 @@ public class TomcatConfigurer {
         }
         tomcat.setPort(Integer.valueOf(webPort));
 
-        File webContentFolder = new File(root.getAbsolutePath(), "src/main/resources/");
+        File webContentFolder = new File(root.getAbsolutePath(), relativeWebContentFolder);
         if (!webContentFolder.exists()) {
             //webContentFolder = Files.createTempDirectory("default-doc-base").toFile();
             webContentFolder = new File(root.getAbsolutePath());

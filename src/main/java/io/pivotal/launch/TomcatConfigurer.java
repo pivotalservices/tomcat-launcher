@@ -131,7 +131,7 @@ public class TomcatConfigurer {
 
     public ContextEnvironment getEnvironment(PropertySource source, String name) {
         Assert.notNull(source, "PropertySource cannot be null");
-        Assert.notNull(source.getProperty(name), "Cannot find property with name: '" + "'");
+        Assert.notNull(source.getProperty(name), "Cannot find property with name: '" + name + "'");
         return tomcatLaunchHelper.getEnvironment(name, source.getProperty(name).toString());
     }
 

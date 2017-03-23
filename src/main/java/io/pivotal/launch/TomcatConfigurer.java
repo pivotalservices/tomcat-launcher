@@ -40,6 +40,7 @@ public class TomcatConfigurer {
         this.buildClassDir = "build/classes/main";
         this.relativeWebContentFolder = "src/main/resources/";
     }
+
     public TomcatConfigurer(final String configServerUrl) {
         this();
         this.configurationLoader = new DefaultConfigurationLoader(configServerUrl);
@@ -55,6 +56,7 @@ public class TomcatConfigurer {
         this(configServerUrl, configurationLoader);
         Assert.notNull(buildClassDir);
         Assert.notNull(buildLibDir);
+        Assert.notNull(relativeWebContentFolder);
         this.buildClassDir = buildClassDir;
         this.buildLibDir = buildLibDir;
         this.relativeWebContentFolder = relativeWebContentFolder;

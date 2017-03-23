@@ -1,4 +1,4 @@
-package io.pivotal.launch;
+package io.pivotal.config;
 
 import org.springframework.core.env.PropertySource;
 

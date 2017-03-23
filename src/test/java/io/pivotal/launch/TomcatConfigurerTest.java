@@ -1,5 +1,6 @@
 package io.pivotal.launch;
 
+import io.pivotal.config.ConfigurationLoader;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.tomcat.util.descriptor.web.ContextEnvironment;

@@ -1,6 +1,7 @@
 package io.pivotal.launch;
 
-import io.pivotal.config.LocalConfigFileEnvironmentProcessor;
+import io.pivotal.config.ConfigurationLoader;
+import io.pivotal.config.DefaultConfigurationLoader;
 import org.apache.catalina.WebResourceRoot;
 import org.apache.catalina.WebResourceSet;
 import org.apache.catalina.core.StandardContext;
@@ -8,58 +9,43 @@ import org.apache.catalina.startup.Tomcat;
 import org.apache.catalina.webresources.DirResourceSet;
 import org.apache.catalina.webresources.EmptyResourceSet;
 import org.apache.catalina.webresources.StandardRoot;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.util.descriptor.web.ContextEnvironment;
 import org.apache.tomcat.util.descriptor.web.ContextResource;
 import org.apache.tomcat.util.scan.Constants;
 import org.apache.tomcat.util.scan.StandardJarScanFilter;
-import org.springframework.cloud.config.client.ConfigClientProperties;
-import org.springframework.cloud.config.client.ConfigServicePropertySourceLocator;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertySource;
-import org.springframework.core.env.StandardEnvironment;
 import org.springframework.util.Assert;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.DefaultUriTemplateHandler;
 
 import javax.servlet.ServletException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
 
-import static io.pivotal.config.LocalConfigFileEnvironmentProcessor.APPLICATION_CONFIGURATION_PROPERTY_SOURCE_NAME;
-import static io.pivotal.config.LocalConfigFileEnvironmentProcessor.DEFAULT_PROPERTIES;
-
-/**
- * Created by malston on 3/20/17.
- */
 public class TomcatConfigurer {
 
     private final TomcatLaunchHelper tomcatLaunchHelper = new TomcatLaunchHelper();
 
     private ConfigurationLoader configurationLoader = null;
 
-    private String configServerUrl;
-
     private String buildLibDir = null;
 
     private String buildClassDir = null;
 
-    public TomcatConfigurer(final String configServerUrl) {
-        Assert.hasLength(configServerUrl, "You MUST set the config server URI");
-        this.configServerUrl = configServerUrl;
+    private TomcatConfigurer() {
         this.buildLibDir = "/build/libs/";
         this.buildClassDir = "build/classes/main";
     }
+    public TomcatConfigurer(final String configServerUrl) {
+        this();
+        this.configurationLoader = new DefaultConfigurationLoader(configServerUrl);
+    }
 
-    public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader configurationLoader) {
+    public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader loader) {
         this(configServerUrl);
-        Assert.notNull(configurationLoader);
-        this.configurationLoader = configurationLoader;
+        Assert.notNull(loader);
+        this.configurationLoader = loader;
     }
 
     public TomcatConfigurer(final String configServerUrl, final ConfigurationLoader configurationLoader, final String buildClassDir, final String buildLibDir) {
@@ -138,66 +124,7 @@ public class TomcatConfigurer {
     }
 
     public PropertySource loadConfiguration(String appName, String[] profiles) {
-        if (this.configurationLoader == null) {
-            return new DefaultConfigurationLoader(configServerUrl).load(appName, profiles);
-        }
         return this.configurationLoader.load(appName, profiles);
-    }
-
-    static class DefaultConfigurationLoader implements ConfigurationLoader {
-
-        private static final String HTTPS_SCHEME = "https://";
-
-        private static final String HTTP_SCHEME = "http://";
-
-        private ConfigurableEnvironment environment = null;
-
-        private ConfigClientProperties defaults = null;
-
-        private ConfigServicePropertySourceLocator locator = null;
-
-        private final RestTemplate restTemplate = new RestTemplate();
-
-        private final LocalConfigFileEnvironmentProcessor localConfigFileEnvironmentProcessor = new LocalConfigFileEnvironmentProcessor();
-
-        private String configServerUrl = null;
-
-        DefaultConfigurationLoader(final String configServerUrl) {
-            Assert.hasLength(configServerUrl, "You MUST set the config server URI");
-            if (!configServerUrl.startsWith(HTTP_SCHEME) && !configServerUrl.startsWith(HTTPS_SCHEME)) {
-                throw new RuntimeException("You MUST put the URI scheme in front of the config server URI");
-            }
-            this.configServerUrl = configServerUrl;
-            this.environment = new StandardEnvironment();
-            this.defaults = new ConfigClientProperties(environment);
-            this.defaults.setFailFast(false);
-            this.defaults.setUri(this.configServerUrl);
-            this.locator = new ConfigServicePropertySourceLocator(defaults);
-            DefaultUriTemplateHandler uriTemplateHandler = new DefaultUriTemplateHandler();
-            uriTemplateHandler.setBaseUrl(this.configServerUrl);
-            this.restTemplate.setUriTemplateHandler(uriTemplateHandler);
-            this.locator.setRestTemplate(restTemplate);
-        }
-
-        public PropertySource load(String appName, String[] profiles) {
-            Map<String, Object> defaultProperties = new HashMap<>();
-            if (StringUtils.isNotEmpty(appName)) {
-                defaultProperties.put("spring.application.name", appName);
-            }
-            this.environment.getPropertySources().addFirst(new MapPropertySource(DEFAULT_PROPERTIES, defaultProperties));
-            if (!StringUtils.isAnyBlank(profiles)) {
-                for (String profile : profiles) {
-                    this.environment.addActiveProfile(profile);
-                }
-            }
-            PropertySource source = this.locator.locate(this.environment);
-            if (source != null) {
-                this.environment.getPropertySources().addFirst(source);
-            }
-            this.localConfigFileEnvironmentProcessor.processEnvironment(environment, source);
-
-            return source == null ? this.environment.getPropertySources().get(APPLICATION_CONFIGURATION_PROPERTY_SOURCE_NAME) : source;
-        }
     }
 
 }

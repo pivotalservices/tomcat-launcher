@@ -45,6 +45,8 @@ public class TomcatConfigurer {
     private ConfigurationLoader configurationLoader = null;
 
     public TomcatConfigurer() {
+        this.buildLibDir = "/build/libs/";
+        this.buildClassDir = "build/classes/main";
     }
 
     private String buildLibDir = null;
@@ -52,9 +54,8 @@ public class TomcatConfigurer {
     private String buildClassDir = null;
 
     public TomcatConfigurer(ConfigurationLoader configurationLoader) {
+        this();
         this.configurationLoader = configurationLoader;
-        this.buildLibDir = "/build/libs/";
-        this.buildClassDir = "build/classes/main";
     }
 
     public TomcatConfigurer(ConfigurationLoader configurationLoader, final String buildClassDir, final String buildLibDir) {

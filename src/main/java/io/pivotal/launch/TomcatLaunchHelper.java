@@ -35,14 +35,18 @@ public class TomcatLaunchHelper {
         Assert.notNull(credentials.get("url"), "Jdbc url is null");
         Assert.notNull(credentials.get("username"), "Username is null");
         Assert.notNull(credentials.get("password"), "Password is null");
-        Assert.notNull(credentials.get("factory"), "DataSource factory is null");
         ContextResource resource = new ContextResource();
         resource.setAuth("Container");
         resource.setType("javax.sql.DataSource");
         resource.setName(credentials.get("name").toString());
         resource.setProperty("driverClassName", credentials.get("driverClassName"));
         resource.setProperty("url", credentials.get("url"));
-        resource.setProperty("factory", credentials.get("factory"));
+        if (credentials.get("factory") != null) {
+            resource.setProperty("factory", credentials.get("factory"));
+        }
+        if (credentials.get("connectionProperties") != null) {
+            resource.setProperty("connectionProperties", credentials.get("connectionProperties"));
+        }
         resource.setProperty("username", credentials.get(("username")));
         resource.setProperty("password", credentials.get("password"));
 

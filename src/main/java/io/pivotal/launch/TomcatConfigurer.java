@@ -2,7 +2,6 @@ package io.pivotal.launch;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -40,7 +39,7 @@ public class TomcatConfigurer {
 
 	private String pathToWebXml = null;
 
-	private String webappPath = null;
+	private String pathToContextXml = null;
 
 	public TomcatConfigurer(final String configServerUrl, final String app, final String[] profiles) {
 		this.buildClassDir = "build/classes/main";
@@ -54,8 +53,7 @@ public class TomcatConfigurer {
 		Path tempPath = Files.createTempDirectory("tomcat-base-dir");
 		tomcat.setBaseDir(tempPath.toString());
 
-		// The port that we should run on can be set into an environment
-		// variable
+		// The port that we should run on can be set into an environment variable
 		// Look for that variable and default to 8080 if it isn't there.
 		String webPort = System.getenv("PORT");
 		if (webPort == null || webPort.isEmpty()) {
@@ -65,29 +63,28 @@ public class TomcatConfigurer {
 
 		File webContentFolder = new File(root.getAbsolutePath(), relativeWebContentFolder);
 		if (!webContentFolder.exists()) {
-			// webContentFolder =
-			// Files.createTempDirectory("default-doc-base").toFile();
 			webContentFolder = new File(root.getAbsolutePath());
 		}
-		System.out.println("webContentFolder is '" + webContentFolder.getAbsolutePath() + "'");
 		StandardContext ctx = (StandardContext) tomcat.addWebapp("", webContentFolder.getAbsolutePath());
+		System.out.println("pathToContextXml is '" + pathToContextXml + "'");
+		if (pathToContextXml != null) {
+			File contextXmlFile = new File(pathToContextXml);
+			if (contextXmlFile != null && contextXmlFile.exists()) {
+				ctx.setConfigFile(TomcatConfigurer.class.getClassLoader().getResource(contextXmlFile.getAbsolutePath()));
+				ctx.setDefaultContextXml(contextXmlFile.getAbsolutePath());
+				System.out.println("full path to context.xml is '" + contextXmlFile.getAbsolutePath() + "'");
+			}
+		}
+		
 		if (pathToWebXml != null && new File(pathToWebXml).exists()) {
 			ctx.setDefaultWebXml(pathToWebXml);
 		} else {
 			ctx.setDefaultWebXml("org/apache/catalin/startup/NO_DEFAULT_XML");
 		}
 
-		System.out.println("webappPath is '" + webappPath + "'");
-		if (webappPath != null) {
-			File contextXmlFile = new File(webappPath + "/META-INF/context.xml");
-			if (contextXmlFile != null && contextXmlFile.exists()) {
-				ctx.setConfigFile(new URL("file://" + contextXmlFile.getAbsolutePath()));
-			}
-		}
-
 		// Set execution independent of current thread context classloader
 		// (compatibility with exec:java mojo)
-		ctx.setParentClassLoader(TomcatLaunchHelper.class.getClassLoader());
+		ctx.setParentClassLoader(TomcatConfigurer.class.getClassLoader());
 
 		// Disable TLD scanning by default
 		if (System.getProperty(Constants.SKIP_JARS_PROPERTY) == null
@@ -136,8 +133,8 @@ public class TomcatConfigurer {
 		}
 		return resourceSet;
 	}
-
-	public ContextResource getResource(Map<String, Object> credentials) {
+	
+	public ContextResource createContainerDataSource(Map<String, Object> credentials) {
 		return tomcatLaunchHelper.createContainerDataSource(credentials);
 	}
 
@@ -178,8 +175,8 @@ public class TomcatConfigurer {
 		this.pathToWebXml = pathToWebXml;
 	}
 
-	public final void setWebappPath(String webappPath) {
-		this.webappPath = webappPath;
+	public final void setPathToContextXml(String pathToContextXml) {
+		this.pathToContextXml = pathToContextXml;
 	}
 
 }

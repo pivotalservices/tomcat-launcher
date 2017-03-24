@@ -9,8 +9,6 @@ import java.net.URISyntaxException;
 import java.util.Map;
 
 public class TomcatLaunchHelper {
-    public TomcatLaunchHelper() {
-    }
 
     public File getRootFolder(String buildLibDir) {
         try {

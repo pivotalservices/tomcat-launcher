@@ -36,12 +36,19 @@ public class TomcatConfigurerTest {
     }
 
     @Test
+    public void testCoolDb() throws Exception {
+        TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888", "foo",
+                new String[] { "db" });
+        CompositePropertySource source = (CompositePropertySource) tomcatConfigurer.loadConfiguration();
+        assertNotNull(source);
+        assertEquals("mycooldb", source.getProperty("foo.db"));
+    }
+
+    @Test
     public void testConfigPrecedenceOrder() throws Exception {
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888", "foo",
                 new String[] { "development, db" });
         CompositePropertySource source = (CompositePropertySource) tomcatConfigurer.loadConfiguration();
-        assertNotNull(source);
-        assertEquals("mycooldb", source.getProperty("foo.db"));
         assertThat("property sources", source.getPropertySources().size(), equalTo(10));
         assertThat(source.getPropertySources().stream()
                         .map(PropertySource::getName)

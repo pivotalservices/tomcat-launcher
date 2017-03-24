@@ -29,8 +29,8 @@ public class TomcatConfigurerTest {
     public void testLoadConfiguration() throws Exception {
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888", "application",
                 new String[] { "default" });
-        tomcatConfigurer.setConfigurationLoader(() -> new PropertySource.StubPropertySource("test"));
-        PropertySource<?> source = tomcatConfigurer.loadConfiguration();
+        tomcatConfigurer.setConfigClientOperations(() -> new PropertySource.StubPropertySource("test"));
+        PropertySource<?> source = tomcatConfigurer.getPropertySource();
         assertThat(source, instanceOf(PropertySource.StubPropertySource.class));
         assertEquals("test", source.getName());
     }
@@ -39,7 +39,7 @@ public class TomcatConfigurerTest {
     public void testCoolDb() throws Exception {
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888", "foo",
                 new String[] { "db" });
-        CompositePropertySource source = (CompositePropertySource) tomcatConfigurer.loadConfiguration();
+        CompositePropertySource source = (CompositePropertySource) tomcatConfigurer.getPropertySource();
         assertNotNull(source);
         assertEquals("mycooldb", source.getProperty("foo.db"));
     }
@@ -48,7 +48,7 @@ public class TomcatConfigurerTest {
     public void testConfigPrecedenceOrder() throws Exception {
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888", "foo",
                 new String[] { "development, db" });
-        CompositePropertySource source = (CompositePropertySource) tomcatConfigurer.loadConfiguration();
+        CompositePropertySource source = (CompositePropertySource) tomcatConfigurer.getPropertySource();
         assertThat("property sources", source.getPropertySources().size(), equalTo(10));
         assertThat(source.getPropertySources().stream()
                         .map(PropertySource::getName)
@@ -78,7 +78,7 @@ public class TomcatConfigurerTest {
     public void testLoadLocalConfigurationFromConfigServer() throws Exception {
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://localhost:8888", "application",
                 new String[] { "default" });
-        PropertySource<?> source = tomcatConfigurer.loadConfiguration();
+        PropertySource<?> source = tomcatConfigurer.getPropertySource();
         assertNotNull(source);
         ContextEnvironment ctxEnv = tomcatConfigurer.getEnvironment(source, "foo");
         assertEquals(ctxEnv.getValue(), "baz");
@@ -88,7 +88,7 @@ public class TomcatConfigurerTest {
     public void testLoadLocalConfigurationFromFile() throws Exception {
         TomcatConfigurer tomcatConfigurer = new TomcatConfigurer("http://bogus", "application",
                 new String[] { "default" });
-        PropertySource<?> source = tomcatConfigurer.loadConfiguration();
+        PropertySource<?> source = tomcatConfigurer.getPropertySource();
         assertNotNull(source);
         ContextEnvironment ctxEnv = tomcatConfigurer.getEnvironment(source, "foo");
         assertEquals(ctxEnv.getValue(), "mark_laptop");
@@ -100,7 +100,7 @@ public class TomcatConfigurerTest {
                 new String[] { "default" });
         environmentVariables.set("CONFIG_TEST", "foobar");
         assertEquals("foobar", System.getenv("CONFIG_TEST"));
-        PropertySource<?> source = tomcatConfigurer.loadConfiguration();
+        PropertySource<?> source = tomcatConfigurer.getPropertySource();
         assertNotNull(source);
         ContextEnvironment ctxEnv = tomcatConfigurer.getEnvironment(source, "CONFIG_TEST");
         assertEquals(ctxEnv.getValue(), "foobar");

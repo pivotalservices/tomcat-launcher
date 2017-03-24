@@ -10,7 +10,7 @@ public class TomcatLaunchHelperTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetResourceThrowsIllegalArgumentException() throws Exception {
-        TomcatLaunchHelper helper = new TomcatLaunchHelper();
+        TomcatLaunchHelper helper = new TomcatLaunchHelper("", "");
         helper.createContainerDataSource(new HashMap<>());
     }
 
@@ -24,19 +24,19 @@ public class TomcatLaunchHelperTest {
         credentials.put("password", "password");
         credentials.put("factory", "org.apache.tomcat.jdbc.pool.DataSourceFactory");
 
-        TomcatLaunchHelper helper = new TomcatLaunchHelper();
+        TomcatLaunchHelper helper = new TomcatLaunchHelper("", "");
         helper.createContainerDataSource(credentials);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetEnvironmentThrowsIllegalArgumentException() throws Exception {
-        TomcatLaunchHelper helper = new TomcatLaunchHelper();
+        TomcatLaunchHelper helper = new TomcatLaunchHelper("", "");
         helper.getEnvironment("test", null);
     }
 
     @Test
     public void testGetEnvironment() throws Exception {
-        TomcatLaunchHelper helper = new TomcatLaunchHelper();
+        TomcatLaunchHelper helper = new TomcatLaunchHelper("", "");
         ContextEnvironment env = helper.getEnvironment("test", "value");
         Assert.assertNotNull(env);
     }

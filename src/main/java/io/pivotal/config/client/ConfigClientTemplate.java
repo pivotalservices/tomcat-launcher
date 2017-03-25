@@ -29,116 +29,130 @@ import org.springframework.web.util.DefaultUriTemplateHandler;
  */
 public class ConfigClientTemplate<T> implements PropertySourceProvider {
 
-    private static final String HTTPS_SCHEME = "https://";
+	private static final String HTTPS_SCHEME = "https://";
 
-    private static final String HTTP_SCHEME = "http://";
+	private static final String HTTP_SCHEME = "http://";
 
-    private final ConfigurableEnvironment environment = new StandardEnvironment();
+	private final ConfigurableEnvironment environment = new StandardEnvironment();
 
-    private final ConfigClientProperties defaults;
+	private final ConfigClientProperties defaults;
 
-    private final ConfigServicePropertySourceLocator locator;
+	private final RestTemplate restTemplate = new RestTemplate();
 
-    private final RestTemplate restTemplate = new RestTemplate();
+	private final ConfigFileEnvironmentProcessor configFileEnvironmentProcessor;
 
-    private final LocalConfigFileEnvironmentProcessor localConfigFileEnvironmentProcessor = new LocalConfigFileEnvironmentProcessor();
-    
-    private final PropertySource<?> source;
+	public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles) {
+		Assert.hasLength(configServerUrl, "You MUST set the config server URI");
+		if (!configServerUrl.startsWith(HTTP_SCHEME) && !configServerUrl.startsWith(HTTPS_SCHEME)) {
+			throw new RuntimeException("You MUST put the URI scheme in front of the config server URI");
+		}
+		Map<String, Object> defaultProperties = new HashMap<>();
+		defaultProperties.put("spring.application.name", app);
+		this.environment.getPropertySources()
+				.addLast(new MapPropertySource(ConfigFileEnvironmentProcessor.DEFAULT_PROPERTIES, defaultProperties));
+		for (String profile : profiles) {
+			this.environment.addActiveProfile(profile);
+		}
+		this.defaults = new ConfigClientProperties(environment);
+		this.defaults.setFailFast(false);
+		this.defaults.setUri(configServerUrl);
+		DefaultUriTemplateHandler uriTemplateHandler = new DefaultUriTemplateHandler();
+		uriTemplateHandler.setBaseUrl(configServerUrl);
+		this.restTemplate.setUriTemplateHandler(uriTemplateHandler);
+		ConfigServicePropertySourceLocator locator = new ConfigServicePropertySourceLocator(defaults);
+		this.configFileEnvironmentProcessor = new ConfigFileEnvironmentProcessor(environment, locator);
+	}
 
-    public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles) {
-        Assert.hasLength(configServerUrl, "You MUST set the config server URI");
-        if (!configServerUrl.startsWith(HTTP_SCHEME) && !configServerUrl.startsWith(HTTPS_SCHEME)) {
-            throw new RuntimeException("You MUST put the URI scheme in front of the config server URI");
-        }
-        Map<String, Object> defaultProperties = new HashMap<>();
-        defaultProperties.put("spring.application.name", app);
-        this.environment.getPropertySources().addLast(new MapPropertySource(LocalConfigFileEnvironmentProcessor.DEFAULT_PROPERTIES, defaultProperties));
-        for (String profile : profiles) {
-            this.environment.addActiveProfile(profile);
-        }
-        this.defaults = new ConfigClientProperties(environment);
-        this.defaults.setFailFast(false);
-        this.defaults.setUri(configServerUrl);
-        this.locator = new ConfigServicePropertySourceLocator(defaults);
-        DefaultUriTemplateHandler uriTemplateHandler = new DefaultUriTemplateHandler();
-        uriTemplateHandler.setBaseUrl(configServerUrl);
-        this.restTemplate.setUriTemplateHandler(uriTemplateHandler);
-        
-        this.source = this.load();
-    }
-
-    private PropertySource<?> load() {
-        PropertySource<?> source = this.locator.locate(this.environment);
-        if (source != null) {
-            this.environment.getPropertySources().addFirst(source);
-        }
-        this.localConfigFileEnvironmentProcessor.processEnvironment(environment, source);
-
-        return source == null ? this.environment.getPropertySources().get(LocalConfigFileEnvironmentProcessor.APPLICATION_CONFIGURATION_PROPERTY_SOURCE_NAME) : source;
-    }
-    
-    @SuppressWarnings("unchecked")
+	@SuppressWarnings("unchecked")
 	public T getProperty(String name) {
-    	return (T) this.source.getProperty(name);
-    }
+		return (T) configFileEnvironmentProcessor.getPropertySource().getProperty(name);
+	}
 
 	public PropertySource<?> getPropertySource() {
-		return this.source;
+		return configFileEnvironmentProcessor.getPropertySource();
 	}
-	
-	static final class LocalConfigFileEnvironmentProcessor extends ConfigFileApplicationListener {
 
-	    public static final String DEFAULT_PROPERTIES = "defaultProperties";
+	static final class ConfigFileEnvironmentProcessor extends ConfigFileApplicationListener
+			implements PropertySourceProvider {
 
-	    /**
-	     * Name of the application configuration {@link PropertySource}.
-	     */
-	    public static final String APPLICATION_CONFIGURATION_PROPERTY_SOURCE_NAME = "applicationConfigurationProperties";
+		static final String DEFAULT_PROPERTIES = "defaultProperties";
 
-	    private ResourceLoader resourceLoader;
+		/**
+		 * Name of the application configuration {@link PropertySource}.
+		 */
+		static final String APPLICATION_CONFIGURATION_PROPERTY_SOURCE_NAME = ConfigFileApplicationListener.APPLICATION_CONFIGURATION_PROPERTY_SOURCE_NAME;
 
-	    public LocalConfigFileEnvironmentProcessor() {
-	        this.resourceLoader = new DefaultResourceLoader(this.getClassLoader());
-	    }
+		private ResourceLoader resourceLoader;
 
-	    public void processEnvironment(ConfigurableEnvironment environment, PropertySource source) {
-	        addPropertySources(environment, this.getResourceLoader());
-	        merge(environment, (CompositePropertySource)source);
-	    }
+		private final ConfigurableEnvironment environment;
+		
+		private final ConfigServicePropertySourceLocator locator;
+		
+		private PropertySource<?> source;
+		
+		public ConfigFileEnvironmentProcessor(ConfigurableEnvironment environment, ConfigServicePropertySourceLocator locator) {
+			this.environment = environment;
+			this.locator = locator;
+			this.resourceLoader = new DefaultResourceLoader(this.getClassLoader());
+		}
 
-	    private void merge(ConfigurableEnvironment environment, CompositePropertySource composite) {
-	        if (environment != null && composite != null) {
-	            if (environment.getPropertySources() != null) {
-	                for (PropertySource source : environment.getPropertySources()) {
-	                    if (source.getSource() instanceof Map) {
-	                        @SuppressWarnings("unchecked")
-	                        Map<String, Object> map = (Map<String, Object>) source
-	                                .getSource();
-	                        composite.addPropertySource(new MapPropertySource(source
-	                                .getName(), map));
-	                    } else if (source.getSource() instanceof List) {
-	                        List sources = (List) source.getSource();
-	                        for (Object src : sources) {
-	                            if (src instanceof  EnumerablePropertySource) {
-	                                EnumerablePropertySource enumerable = (EnumerablePropertySource) src;
-	                                composite.addPropertySource(enumerable);
-	                            }
-	                        }
-	                    } else if (!(source instanceof CompositePropertySource)) {
-	                        composite.addPropertySource(source);
-	                    }
-	                }
-	            }
-	        }
-	    }
+		public PropertySource<?> getPropertySource() {
+			if (source != null) {
+				return source;
+			}
+			source = getPropertySource(this.locator);
 
-	    public ClassLoader getClassLoader() {
-	        return this.resourceLoader != null ? this.resourceLoader.getClassLoader() : ClassUtils.getDefaultClassLoader();
-	    }
+			return source == null ? this.environment.getPropertySources().get(APPLICATION_CONFIGURATION_PROPERTY_SOURCE_NAME) : source;
+		}
+		
+		public void refresh() {
+			source = getPropertySource(this.locator);
+		}
 
-	    public ResourceLoader getResourceLoader() {
-	        return this.resourceLoader;
-	    }
+		public ClassLoader getClassLoader() {
+			return this.resourceLoader != null ? this.resourceLoader.getClassLoader()
+					: ClassUtils.getDefaultClassLoader();
+		}
+
+		public ResourceLoader getResourceLoader() {
+			return this.resourceLoader;
+		}
+
+		private PropertySource<?> getPropertySource(ConfigServicePropertySourceLocator locator) {
+			PropertySource<?> source = locator.locate(this.environment);
+			if (source != null) {
+				this.environment.getPropertySources().addFirst(source);
+			}
+
+			addPropertySources(environment, this.getResourceLoader());
+			addPropertySources((CompositePropertySource) source);
+
+			return source;
+		}
+
+		private void addPropertySources(CompositePropertySource composite) {
+			if (environment != null && composite != null) {
+				if (environment.getPropertySources() != null) {
+					for (PropertySource source : environment.getPropertySources()) {
+						if (source.getSource() instanceof Map) {
+							@SuppressWarnings("unchecked")
+							Map<String, Object> map = (Map<String, Object>) source.getSource();
+							composite.addPropertySource(new MapPropertySource(source.getName(), map));
+						} else if (source.getSource() instanceof List) {
+							List sources = (List) source.getSource();
+							for (Object src : sources) {
+								if (src instanceof EnumerablePropertySource) {
+									EnumerablePropertySource enumerable = (EnumerablePropertySource) src;
+									composite.addPropertySource(enumerable);
+								}
+							}
+						} else if (!(source instanceof CompositePropertySource)) {
+							composite.addPropertySource(source);
+						}
+					}
+				}
+			}
+		}
 	}
 
 }

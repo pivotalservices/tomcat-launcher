@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.PropertySource;
@@ -38,6 +39,15 @@ public class ConfigClientTemplateTest {
                         "random",
                         "applicationConfig: [profile=]",
                         "defaultProperties"));
+    }
+
+    @Test
+    public void testDefaultProperties() throws Exception {
+        ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<CompositePropertySource>("http://localhost:8888", "foo",
+                new String[] { "default" });
+        Assert.assertNotNull(configClientTemplate.getPropertySource());
+        Assert.assertEquals("from foo props", configClientTemplate.getPropertySource().getProperty("foo"));
+        Assert.assertEquals("test", configClientTemplate.getPropertySource().getProperty("testprop"));
     }
 
 }

@@ -1,14 +1,7 @@
 package io.pivotal.tomcat.launch;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Map;
-
-import javax.servlet.ServletException;
-
+import io.pivotal.config.client.ConfigClientTemplate;
+import io.pivotal.config.client.PropertySourceProvider;
 import org.apache.catalina.WebResourceRoot;
 import org.apache.catalina.WebResourceSet;
 import org.apache.catalina.core.StandardContext;
@@ -20,11 +13,17 @@ import org.apache.tomcat.util.descriptor.web.ContextEnvironment;
 import org.apache.tomcat.util.descriptor.web.ContextResource;
 import org.apache.tomcat.util.scan.Constants;
 import org.apache.tomcat.util.scan.StandardJarScanFilter;
+import org.apache.tomcat.util.scan.StandardJarScanner;
 import org.springframework.core.env.PropertySource;
 import org.springframework.util.Assert;
 
-import io.pivotal.config.client.PropertySourceProvider;
-import io.pivotal.config.client.ConfigClientTemplate;
+import javax.servlet.ServletException;
+import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
 
 public class TomcatLaunchConfigurer {
 
@@ -47,7 +46,7 @@ public class TomcatLaunchConfigurer {
 	public TomcatLaunchConfigurer(final String configServerUrl, final String app, final String[] profiles) {
 		this.configClient = new ConfigClientTemplate<Object>(configServerUrl, app, profiles);
 		this.buildClassDir = "build/classes/main";
-		this.relativeWebContentFolder = "src/main/resources/";
+		this.relativeWebContentFolder = "src/main/webapp";
 	}
 
 	public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
@@ -70,7 +69,11 @@ public class TomcatLaunchConfigurer {
 			webContentFolder = new File(root.getAbsolutePath());
 		}
 		StandardContext ctx = (StandardContext) tomcat.addWebapp("", webContentFolder.getAbsolutePath());
-		System.out.println("pathToContextXml is '" + this.pathToContextXml + "'");
+        StandardJarScanner scanner = new StandardJarScanner();
+        scanner.setScanBootstrapClassPath(true);
+        ctx.setJarScanner(scanner);
+
+        System.out.println("pathToContextXml is '" + this.pathToContextXml + "'");
 		if (this.pathToContextXml != null) {
 			File contextXmlFile = new File(this.pathToContextXml);
 			if (contextXmlFile != null && contextXmlFile.exists()) {
@@ -120,7 +123,7 @@ public class TomcatLaunchConfigurer {
 	private File getRootFolder(String path) {
 		try {
 			File root;
-			String runningJarPath = TomcatLaunchConfigurer.class.getProtectionDomain().getCodeSource().getLocation().toURI()
+			String runningJarPath = io.pivotal.tomcat.launch.TomcatLaunchConfigurer.class.getProtectionDomain().getCodeSource().getLocation().toURI()
 					.getPath().replaceAll("\\\\", "/");
 			int lastIndexOf = runningJarPath.lastIndexOf(path);
 			if (lastIndexOf < 0) {

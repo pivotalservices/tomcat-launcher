@@ -10,17 +10,11 @@ import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.PropertySource;
 
-import io.pivotal.tomcat.launch.TomcatLaunchConfigurer;
+import java.util.HashMap;
 
 import static java.util.stream.Collectors.toList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-
-import java.util.HashMap;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 
 /**
  * Some of these are integration tests... Need to run config server on port 8888
@@ -117,6 +111,15 @@ public class TomcatLaunchConfigurerTest {
     public void testGetResourceThrowsIllegalArgumentException() throws Exception {
         TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer("", "", null);
         helper.createContainerDataSource(new HashMap<>());
+    }
+
+    @Test
+    public void testDefaultProperties() throws Exception {
+        TomcatLaunchConfigurer tomcatLaunchConfigurer = new TomcatLaunchConfigurer("http://localhost:8888", "foo", new String[] { });
+        PropertySource<?> source = tomcatLaunchConfigurer.getPropertySource();
+        Assert.assertNotNull(source);
+        Assert.assertEquals("test", source.getProperty("testprop"));
+        Assert.assertEquals("not in config server", source.getProperty("newprop"));
     }
 
     @Test

@@ -44,7 +44,6 @@ dependencies {
 
     compile("org.springframework.cloud:spring-cloud-config-client:1.2.3.RELEASE")
 
-    runtime('mysql:mysql-connector-java:6.0.5')
     runtime("org.apache.tomcat:tomcat-dbcp:${tomcatVersion}")
 
     testCompile("junit:junit-dep:4.11")

@@ -37,16 +37,16 @@ public class TomcatLaunchConfigurer {
 
 	private String pathToContextXml = null;
 
-	private final PropertySourceProvider configClient;
+	private final PropertySourceProvider provider;
 
-	public TomcatLaunchConfigurer(final PropertySourceProvider configClient) {
-		this.configClient = configClient;
+	public TomcatLaunchConfigurer(final PropertySourceProvider provider) {
+		this.provider = provider;
+		this.buildClassDir = "build/classes/main";
+		this.relativeWebContentFolder = "src/main/webapp";
 	}
 
 	public TomcatLaunchConfigurer(final String configServerUrl, final String app, final String[] profiles) {
-		this.configClient = new ConfigClientTemplate<Object>(configServerUrl, app, profiles);
-		this.buildClassDir = "build/classes/main";
-		this.relativeWebContentFolder = "src/main/webapp";
+		this(new ConfigClientTemplate<>(configServerUrl, app, profiles));
 	}
 
 	public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
@@ -139,7 +139,7 @@ public class TomcatLaunchConfigurer {
 	}
 
 	public PropertySource<?> getPropertySource() {
-		return this.configClient.getPropertySource();
+		return this.provider.getPropertySource();
 	}
 
 	public ContextResource createContainerDataSource(Map<String, Object> credentials) {

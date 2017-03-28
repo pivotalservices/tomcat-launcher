@@ -1,22 +1,34 @@
 package io.pivotal.config.client;
 
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
+import org.springframework.core.env.CompositePropertySource;
+import org.springframework.core.env.PropertySource;
+
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.springframework.core.env.CompositePropertySource;
-import org.springframework.core.env.PropertySource;
-
 public class ConfigClientTemplateTest {
+
+    @Rule
+    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     @Test
     public void testCoolDb() throws Exception {
         ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<Object>("http://localhost:8888", "foo",
                 new String[] { "db" });
+        assertEquals("mycooldb", configClientTemplate.getProperty("foo.db"));
+    }
+
+    @Test
+    public void testOverrideSpringProfilesActive() throws Exception {
+        environmentVariables.set("SPRING_PROFILES_ACTIVE", "foo,db");
+        ConfigClientTemplate configClientTemplate = new ConfigClientTemplate("http://localhost:8888", "foo",null);
         assertEquals("mycooldb", configClientTemplate.getProperty("foo.db"));
     }
 

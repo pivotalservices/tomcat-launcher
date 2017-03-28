@@ -18,8 +18,6 @@ import org.springframework.core.io.ResourceLoader;
 import org.springframework.util.Assert;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.DefaultUriTemplateHandler;
 
 import java.io.IOException;
 import java.util.*;
@@ -33,19 +31,23 @@ public class ConfigClientTemplate<T> implements io.pivotal.config.client.Propert
 
     private static final String HTTP_SCHEME = "http://";
 
-    private final ConfigurableEnvironment environment = new StandardEnvironment();
+    private final ConfigServicePropertySourceLocator locator;
 
     private final ConfigClientProperties defaults;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final ConfigurableEnvironment environment;
 
     private final ConfigFileEnvironmentProcessor configFileEnvironmentProcessor;
 
-    public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles) {
+    private ConfigClientTemplate(final String configServerUrl, final String app, String[] profiles, ConfigurableEnvironment environment) {
         Assert.hasLength(configServerUrl, "You MUST set the config server URI");
         if (!configServerUrl.startsWith(HTTP_SCHEME) && !configServerUrl.startsWith(HTTPS_SCHEME)) {
             throw new RuntimeException("You MUST put the URI scheme in front of the config server URI");
         }
+        if (profiles == null || "".equals(profiles)) {
+            profiles = new String[]{"default"};
+        }
+        this.environment = environment;
         Map<String, Object> defaultProperties = new HashMap<>();
         defaultProperties.put("spring.application.name", app);
         this.environment.getPropertySources()
@@ -53,14 +55,23 @@ public class ConfigClientTemplate<T> implements io.pivotal.config.client.Propert
         for (String profile : profiles) {
             this.environment.addActiveProfile(profile);
         }
-        this.defaults = new ConfigClientProperties(environment);
-        this.defaults.setFailFast(false);
+        this.defaults = new ConfigClientProperties(this.environment);
         this.defaults.setUri(configServerUrl);
-        DefaultUriTemplateHandler uriTemplateHandler = new DefaultUriTemplateHandler();
-        uriTemplateHandler.setBaseUrl(configServerUrl);
-        this.restTemplate.setUriTemplateHandler(uriTemplateHandler);
-        ConfigServicePropertySourceLocator locator = new ConfigServicePropertySourceLocator(defaults);
-        this.configFileEnvironmentProcessor = new ConfigFileEnvironmentProcessor(environment, locator);
+        this.locator = new ConfigServicePropertySourceLocator(this.defaults);
+        this.configFileEnvironmentProcessor = new ConfigFileEnvironmentProcessor(this.environment, this.locator);
+    }
+
+    public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles, boolean failFast, ConfigurableEnvironment env) {
+        this(configServerUrl, app, profiles, env);
+        this.defaults.setFailFast(failFast);
+    }
+
+    public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles, boolean failFast) {
+        this(configServerUrl, app, profiles, failFast, new StandardEnvironment());
+    }
+
+    public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles) {
+        this(configServerUrl, app, profiles, false);
     }
 
     @SuppressWarnings("unchecked")

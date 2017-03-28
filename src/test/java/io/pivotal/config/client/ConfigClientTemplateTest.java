@@ -13,6 +13,13 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+/**
+ * Some of these are integration tests... Need to run config server on port 8888
+ * and point it to github.com/malston/config-repo. TODO: Move integration tests
+ * into separate folder.
+ *
+ * @author malston
+ */
 public class ConfigClientTemplateTest {
 
     @Rule

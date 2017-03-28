@@ -131,7 +131,6 @@ public class ConfigClientTemplate<T> implements io.pivotal.config.client.Propert
             source = getPropertySource(this.locator);
         }
 
-
         public ResourceLoader getResourceLoader() {
             return this.resourceLoader;
         }

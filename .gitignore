@@ -3,6 +3,7 @@
 !gradle/wrapper/gradle-wrapper.jar
 /bin
 /out
+/target
 
 ### STS ###
 .classpath

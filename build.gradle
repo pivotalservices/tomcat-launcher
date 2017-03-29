@@ -1,5 +1,6 @@
 buildscript {
     ext {
+        springBootVersion = '1.4.5.RELEASE'
         buildNrLoc = project.hasProperty('buildNr') ? "${buildNr}" : "0.0.1-SNAPSHOT"
     }
     repositories {
@@ -8,11 +9,15 @@ buildscript {
         mavenCentral()
         maven { url 'https://repo.spring.io/plugins-release' }
     }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
 }
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
+apply plugin: 'org.springframework.boot'
 
 group = 'io.pivotal'
 version = buildNrLoc
@@ -28,6 +33,12 @@ repositories {
     maven { url "https://repo.spring.io/milestone" }
 }
 
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Camden.SR6"
+    }
+}
+
 dependencies {
     compile("org.apache.tomcat.embed:tomcat-embed-core:${tomcatVersion}")
     compile("org.apache.tomcat.embed:tomcat-embed-logging-juli:${tomcatVersion}")
@@ -37,14 +48,17 @@ dependencies {
     compile("org.apache.tomcat:tomcat-jsp-api:${tomcatVersion}")
     compile("org.apache.tomcat:tomcat-jdbc:${tomcatVersion}")
 
-    // If you intend to deploy the app to Cloud Foundry
-    compile("org.springframework.cloud:spring-cloud-cloudfoundry-connector:1.2.3.RELEASE")
-    // To use Spring Cloud Connectors for development
-    compile("org.springframework.cloud:spring-cloud-localconfig-connector:1.2.3.RELEASE")
-
-    compile("org.springframework.cloud:spring-cloud-config-client:1.2.3.RELEASE")
+//    compile("org.springframework.cloud:spring-cloud-config-client:1.2.3.RELEASE")
 
     runtime("org.apache.tomcat:tomcat-dbcp:${tomcatVersion}")
+
+    compile("org.springframework.retry:spring-retry:1.2.0.RELEASE")
+    compile("org.springframework.cloud:spring-cloud-starter-config")
+    compile("org.springframework.boot:spring-boot-starter-aop")
+
+    testCompile("org.springframework.cloud:spring-cloud-config-server")
+    testCompile("org.springframework.boot:spring-boot-starter-web")
+    testCompile("org.springframework.boot:spring-boot-starter-test")
 
     testCompile("junit:junit-dep:4.11")
     testCompile("com.github.stefanbirkner:system-rules:1.16.1")

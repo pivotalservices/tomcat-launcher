@@ -1,6 +1,3 @@
-/**
- *
- */
 package io.pivotal.config.client;
 
 import org.apache.commons.logging.Log;

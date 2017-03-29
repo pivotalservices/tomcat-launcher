@@ -20,13 +20,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.*;
 
-/**
- * Some of these are integration tests... Need to run config server on port 8888
- * and point it to github.com/malston/config-repo. TODO: Move integration tests
- * into separate folder.
- *
- * @author malston
- */
 @RunWith(SpringRunner.class)
 // Explicitly enable config client because test classpath has config server on it
 @SpringBootTest(properties = {"spring.cloud.config.enabled=true",

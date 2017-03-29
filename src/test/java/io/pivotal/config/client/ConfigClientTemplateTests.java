@@ -1,8 +1,6 @@
 package io.pivotal.config.client;
 
 import io.pivotal.config.server.TestConfigServer;
-import io.pivotal.tomcat.launch.TomcatLaunchConfigurer;
-import org.apache.tomcat.util.descriptor.web.ContextEnvironment;
 import org.junit.*;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.junit.runner.RunWith;
@@ -31,9 +29,9 @@ import static org.junit.Assert.*;
  */
 @RunWith(SpringRunner.class)
 // Explicitly enable config client because test classpath has config server on it
-@SpringBootTest(properties={ "spring.cloud.config.enabled=true",
-        "logging.level.org.springframework.retry=TRACE" },
-        classes=StandaloneClientApplication.class)
+@SpringBootTest(properties = {"spring.cloud.config.enabled=true",
+        "logging.level.org.springframework.retry=TRACE"},
+        classes = StandaloneClientApplication.class)
 @DirtiesContext
 public class ConfigClientTemplateTests {
 
@@ -49,8 +47,7 @@ public class ConfigClientTemplateTests {
             public void run() {
                 try {
                     Thread.sleep(2000L);
-                }
-                catch (InterruptedException e) {
+                } catch (InterruptedException e) {
                 }
                 context = TestConfigServer.start();
             }
@@ -59,7 +56,7 @@ public class ConfigClientTemplateTests {
 
     @AfterClass
     public static void shutdown() {
-        if (context!=null) {
+        if (context != null) {
             context.close();
         }
     }
@@ -70,21 +67,21 @@ public class ConfigClientTemplateTests {
     @Test
     public void testCoolDb() throws Exception {
         ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<Object>("http://localhost:8888", "foo",
-                new String[] { "db" });
+                new String[]{"db"});
         assertEquals("mycooldb", configClientTemplate.getProperty("foo.db"));
     }
 
     @Test
     public void testOverrideSpringProfilesActive() throws Exception {
         environmentVariables.set("SPRING_PROFILES_ACTIVE", "foo,db");
-        ConfigClientTemplate configClientTemplate = new ConfigClientTemplate("http://localhost:8888", "foo",null);
+        ConfigClientTemplate configClientTemplate = new ConfigClientTemplate("http://localhost:8888", "foo", null);
         assertEquals("mycooldb", configClientTemplate.getProperty("foo.db"));
     }
 
     @Test
     public void testConfigPrecedenceOrder() throws Exception {
         ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<CompositePropertySource>("http://localhost:8888", "foo",
-                new String[] { "development, db" });
+                new String[]{"development, db"});
         CompositePropertySource source = (CompositePropertySource) configClientTemplate.getPropertySource();
         assertThat("property sources", source.getPropertySources().size(), equalTo(10));
         assertThat(source.getPropertySources().stream()
@@ -105,7 +102,7 @@ public class ConfigClientTemplateTests {
     @Test
     public void testDefaultProperties() throws Exception {
         ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<CompositePropertySource>("http://localhost:8888", "foo",
-                new String[] { "default" });
+                new String[]{"default"});
         Assert.assertNotNull(configClientTemplate.getPropertySource());
         Assert.assertEquals("from foo props", configClientTemplate.getPropertySource().getProperty("foo"));
         Assert.assertEquals("test", configClientTemplate.getPropertySource().getProperty("testprop"));
@@ -114,7 +111,7 @@ public class ConfigClientTemplateTests {
     @Test
     public void testLoadLocalConfigurationFromConfigServer() throws Exception {
         ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate("http://localhost:8888", "application",
-                new String[] { "default" });
+                new String[]{"default"});
         PropertySource<?> source = configClientTemplate.getPropertySource();
         assertNotNull(source);
         String foo = (String) configClientTemplate.getPropertySource().getProperty("foo");
@@ -124,7 +121,7 @@ public class ConfigClientTemplateTests {
     @Test
     public void testLoadEnvironmentVariableFromConfigServer() throws Exception {
         ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate("http://localhost:8888", "application",
-                new String[] { "default" });
+                new String[]{"default"});
         environmentVariables.set("CONFIG_TEST", "foobar");
         assertEquals("foobar", System.getenv("CONFIG_TEST"));
         PropertySource<?> source = configClientTemplate.getPropertySource();

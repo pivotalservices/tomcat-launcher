@@ -37,12 +37,15 @@ public class TomcatLaunchConfigurer {
 
 	private String pathToContextXml = null;
 
+    private String contextPath = null;
+
 	private final PropertySourceProvider provider;
 
 	public TomcatLaunchConfigurer(final PropertySourceProvider provider) {
 		this.provider = provider;
 		this.buildClassDir = "build/classes/main";
 		this.relativeWebContentFolder = "src/main/webapp";
+		this.contextPath = "";
 	}
 
 	public TomcatLaunchConfigurer(final String configServerUrl, final String app, final String[] profiles) {
@@ -68,7 +71,7 @@ public class TomcatLaunchConfigurer {
 		if (!webContentFolder.exists()) {
 			webContentFolder = new File(root.getAbsolutePath());
 		}
-		StandardContext ctx = (StandardContext) tomcat.addWebapp("", webContentFolder.getAbsolutePath());
+		StandardContext ctx = (StandardContext) tomcat.addWebapp(contextPath, webContentFolder.getAbsolutePath());
         StandardJarScanner scanner = new StandardJarScanner();
         scanner.setScanBootstrapClassPath(true);
         ctx.setJarScanner(scanner);
@@ -168,24 +171,32 @@ public class TomcatLaunchConfigurer {
 		return resource;
 	}
 
-	public ContextEnvironment getEnvironment(String name, String value) {
-		Assert.notNull(name, "Name cannot be null");
-		Assert.notNull(value, "Value cannot be null");
-		System.out.println("Setting key: '" + name + "'" + " to value: '" + value + "'");
-		ContextEnvironment env = new ContextEnvironment();
-		env.setName(name);
-		env.setValue(value);
-		env.setType("java.lang.String");
-		env.setOverride(false);
-		return env;
-	}
-	
+    public ContextEnvironment getEnvironment(String name, String value, String type, boolean override) {
+        Assert.notNull(name, "Name cannot be null");
+        Assert.notNull(value, "Value cannot be null");
+        System.out.println("Setting key: '" + name + "'" + " to value: '" + value + "'");
+        ContextEnvironment env = new ContextEnvironment();
+        env.setName(name);
+        env.setValue(value);
+        env.setType(type);
+        env.setOverride(override);
+        return env;
+    }
+
+    public ContextEnvironment getEnvironment(String name, String value) {
+        return getEnvironment(name, value, "java.lang.String", false);
+    }
+
+    public ContextEnvironment getEnvironment(PropertySource<?> source, String name, String type, boolean override) {
+        Assert.notNull(source, "PropertySource cannot be null");
+        Assert.notNull(source.getProperty(name), "Cannot find property with name: '" + name + "'");
+        return getEnvironment(name, source.getProperty(name).toString(), type, override);
+    }
+
 	public ContextEnvironment getEnvironment(PropertySource<?> source, String name) {
-		Assert.notNull(source, "PropertySource cannot be null");
-		Assert.notNull(source.getProperty(name), "Cannot find property with name: '" + name + "'");
 		return getEnvironment(name, source.getProperty(name).toString());
 	}
-	
+
 	private WebResourceSet addAdditionalWebInfResources(File root, String webAppMount, File additionWebInfClassesFolder,
 			WebResourceRoot resources) {
 		WebResourceSet resourceSet;
@@ -230,5 +241,9 @@ public class TomcatLaunchConfigurer {
 	public final void setPathToContextXml(String pathToContextXml) {
 		this.pathToContextXml = pathToContextXml;
 	}
+
+    public final void setContextPath(String contextPath) {
+        this.contextPath = contextPath;
+    }
 
 }

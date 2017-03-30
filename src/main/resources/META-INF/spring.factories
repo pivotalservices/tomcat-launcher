@@ -1,2 +1,0 @@
-org.springframework.cloud.bootstrap.BootstrapConfiguration=\
-io.pivotal.config.bootstrap.RetryConfiguration

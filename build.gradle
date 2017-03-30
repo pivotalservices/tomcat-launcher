@@ -31,6 +31,14 @@ ext {
     }
 }
 
+repositories {
+    mavenLocal()
+    jcenter()
+    mavenCentral()
+    maven { url "https://repo.spring.io/release" }
+    maven { url "https://repo.spring.io/milestone" }
+}
+
 sourceSets {
     integrationTest {
         java {
@@ -45,14 +53,6 @@ sourceSets {
 configurations {
     integrationTestCompile.extendsFrom testCompile
     integrationTestRuntime.extendsFrom testRuntime
-}
-
-repositories {
-    mavenLocal()
-    jcenter()
-    mavenCentral()
-    maven { url "https://repo.spring.io/release" }
-    maven { url "https://repo.spring.io/milestone" }
 }
 
 dependencyManagement {
@@ -88,15 +88,22 @@ dependencies {
     testCompile "org.mockito:mockito-core:1.10.19"
 }
 
-task integrationTests(type: Test) {
+tasks.withType(Test) {
+    reports.html.destination = file("${reporting.baseDir}/${name}")
+}
+
+task integrationTest(type: Test) {
     jvmArgs systemPropsFromGradle()
+    testClassesDir = sourceSets.integrationTest.output.classesDir
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    outputs.upToDateWhen { false }
     testLogging {
         exceptionFormat = 'full'
         showStandardStreams = true
     }
-    include 'src/it/java/**/*.*'
-
     group 'verification'
-
     description = "Runs the integration tests"
 }
+
+check.dependsOn integrationTest
+integrationTest.mustRunAfter test

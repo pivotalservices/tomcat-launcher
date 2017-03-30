@@ -152,12 +152,4 @@ public class ConfigClientTemplateTests {
                         Mockito.any(Class.class), Matchers.anyString(),
                         Matchers.anyString())).thenReturn(response);
     }
-    @Test
-    public void getProperty() throws Exception {
-    }
-
-    @Test
-    public void getPropertySource() throws Exception {
-    }
-
 }

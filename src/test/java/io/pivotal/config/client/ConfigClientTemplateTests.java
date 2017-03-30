@@ -11,7 +11,6 @@ import org.springframework.boot.test.util.EnvironmentTestUtils;
 import org.springframework.cloud.config.client.ConfigClientProperties;
 import org.springframework.cloud.config.client.ConfigServicePropertySourceLocator;
 import org.springframework.cloud.config.environment.Environment;
-import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.http.*;
@@ -41,13 +40,12 @@ public class ConfigClientTemplateTests {
 
     @Test
     public void sunnyDay() {
-        ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<CompositePropertySource>("http://localhost:8888", "foo",
-                new String[]{"development, db"});
         Environment body = new Environment("app", "master");
         mockRequestResponseWithoutLabel(new ResponseEntity<>(body,
                 HttpStatus.OK));
         this.locator.setRestTemplate(this.restTemplate);
-        assertNotNull(this.locator.locate(this.environment));
+        ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<>(this.locator, this.environment);
+        assertNotNull(configClientTemplate.getPropertySource());
     }
 
     @Test
@@ -58,7 +56,8 @@ public class ConfigClientTemplateTests {
         this.locator.setRestTemplate(this.restTemplate);
         EnvironmentTestUtils.addEnvironment(this.environment,
                 "spring.cloud.config.label:v1.0.0");
-        assertNotNull(this.locator.locate(this.environment));
+        ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<>(this.locator, this.environment);
+        assertNotNull(configClientTemplate.getPropertySource());
     }
 
     @Test
@@ -66,7 +65,8 @@ public class ConfigClientTemplateTests {
         mockRequestResponseWithLabel(new ResponseEntity<Void>((Void) null,
                 HttpStatus.NOT_FOUND), "nosuchlabel");
         this.locator.setRestTemplate(this.restTemplate);
-        assertNull(this.locator.locate(this.environment));
+        ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<>(this.locator, this.environment);
+        assertNotNull(configClientTemplate.getPropertySource());
     }
 
     @Test
@@ -74,7 +74,8 @@ public class ConfigClientTemplateTests {
         mockRequestResponseWithoutLabel(new ResponseEntity<>("Wah!",
                 HttpStatus.INTERNAL_SERVER_ERROR));
         this.locator.setRestTemplate(this.restTemplate);
-        assertNull(this.locator.locate(this.environment));
+        ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<>(this.locator, this.environment);
+        assertNotNull(configClientTemplate.getPropertySource());
     }
 
     @Test

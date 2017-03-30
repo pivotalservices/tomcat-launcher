@@ -5,7 +5,6 @@ import org.springframework.boot.context.config.ConfigFileApplicationListener;
 import org.springframework.boot.context.config.RandomValuePropertySource;
 import org.springframework.boot.env.EnumerableCompositePropertySource;
 import org.springframework.boot.logging.DeferredLog;
-import org.springframework.cloud.config.client.ConfigClientProperties;
 import org.springframework.cloud.config.client.ConfigServicePropertySourceLocator;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.*;
@@ -21,51 +20,33 @@ import java.util.*;
 
 public class ConfigClientTemplate<T> implements io.pivotal.config.client.PropertySourceProvider {
 
-    private static final String HTTPS_SCHEME = "https://";
-
-    private static final String HTTP_SCHEME = "http://";
-
     private final ConfigServicePropertySourceLocator locator;
-
-    private final ConfigClientProperties defaults;
-
-    private final ConfigurableEnvironment environment;
 
     private final ConfigFileEnvironmentProcessor configFileEnvironmentProcessor;
 
-    private ConfigClientTemplate(final String configServerUrl, final String app, String[] profiles, ConfigurableEnvironment environment) {
-        Assert.hasLength(configServerUrl, "You MUST set the config server URI");
-        if (!configServerUrl.startsWith(HTTP_SCHEME) && !configServerUrl.startsWith(HTTPS_SCHEME)) {
-            throw new RuntimeException("You MUST put the URI scheme in front of the config server URI");
-        }
-        if (profiles == null || "".equals(profiles)) {
-            profiles = new String[]{"default"};
-        }
-        this.environment = environment;
-        Map<String, Object> defaultProperties = new HashMap<>();
-        defaultProperties.put("spring.application.name", app);
-        this.environment.getPropertySources()
-                .addLast(new MapPropertySource(ConfigFileEnvironmentProcessor.DEFAULT_PROPERTIES, defaultProperties));
-        for (String profile : profiles) {
-            this.environment.addActiveProfile(profile);
-        }
-        this.defaults = new ConfigClientProperties(this.environment);
-        this.defaults.setUri(configServerUrl);
-        this.locator = new ConfigServicePropertySourceLocator(this.defaults);
-        this.configFileEnvironmentProcessor = new ConfigFileEnvironmentProcessor(this.environment, this.locator);
+    private final ConfigServicePropertySourceLocatorFactory configServicePropertySourceLocatorFactory = new ConfigServicePropertySourceLocatorFactory();
+
+    private ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles, final ConfigurableEnvironment environment) {
+        this.locator = configServicePropertySourceLocatorFactory.newConfigServicePropertySourceLocator(configServerUrl, app, profiles, environment);
+        this.configFileEnvironmentProcessor = new ConfigFileEnvironmentProcessor(environment, this.locator);
     }
 
-    public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles, boolean failFast, ConfigurableEnvironment env) {
+    public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles, final boolean failFast, final ConfigurableEnvironment env) {
         this(configServerUrl, app, profiles, env);
-        this.defaults.setFailFast(failFast);
+        this.configServicePropertySourceLocatorFactory.getConfigClientProperties().setFailFast(failFast);
     }
 
-    public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles, boolean failFast) {
+    public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles, final boolean failFast) {
         this(configServerUrl, app, profiles, failFast, new StandardEnvironment());
     }
 
     public ConfigClientTemplate(final String configServerUrl, final String app, final String[] profiles) {
         this(configServerUrl, app, profiles, false);
+    }
+
+    public ConfigClientTemplate(final ConfigServicePropertySourceLocator locator, final ConfigurableEnvironment environment) {
+        this.locator = locator;
+        this.configFileEnvironmentProcessor = new ConfigFileEnvironmentProcessor(environment, this.locator);
     }
 
     @SuppressWarnings("unchecked")
@@ -80,7 +61,7 @@ public class ConfigClientTemplate<T> implements io.pivotal.config.client.Propert
     static final class ConfigFileEnvironmentProcessor extends ConfigFileApplicationListener
             implements PropertySourceProvider {
 
-        private static final String DEFAULT_PROPERTIES = "defaultProperties";
+        public static final String DEFAULT_PROPERTIES = "defaultProperties";
 
         // Note the order is from least to most specific (last one wins)
         private static final String DEFAULT_SEARCH_LOCATIONS = "classpath:/,classpath:/config/,file:./,file:./config/";

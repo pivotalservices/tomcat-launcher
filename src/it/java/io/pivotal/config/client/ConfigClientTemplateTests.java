@@ -4,9 +4,7 @@ import io.pivotal.config.server.TestConfigServer;
 import org.junit.*;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.cloud.config.client.ConfigServicePropertySourceLocator;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.PropertySource;
@@ -28,8 +26,8 @@ import static org.junit.Assert.*;
 @DirtiesContext
 public class ConfigClientTemplateTests {
 
-    @Autowired
-    private ConfigServicePropertySourceLocator locator;
+    @Rule
+    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     private static ConfigurableApplicationContext context;
 
@@ -54,21 +52,16 @@ public class ConfigClientTemplateTests {
         }
     }
 
-    @Rule
-    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
-
     @Test
     public void testCoolDb() throws Exception {
-        ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<Object>("http://localhost:8888", "foo",
-                new String[]{"db"});
-        assertEquals("mycooldb", configClientTemplate.getProperty("foo.db"));
+        assertEquals("mycooldb", new ConfigClientTemplate<Object>("http://localhost:8888", "foo",
+                new String[]{"db"}).getProperty("foo.db"));
     }
 
     @Test
     public void testOverrideSpringProfilesActive() throws Exception {
         environmentVariables.set("SPRING_PROFILES_ACTIVE", "foo,db");
-        ConfigClientTemplate configClientTemplate = new ConfigClientTemplate("http://localhost:8888", "foo", null);
-        assertEquals("mycooldb", configClientTemplate.getProperty("foo.db"));
+        assertEquals("mycooldb", new ConfigClientTemplate("http://localhost:8888", "foo", null).getProperty("foo.db"));
     }
 
     @Test
@@ -96,9 +89,9 @@ public class ConfigClientTemplateTests {
     public void testDefaultProperties() throws Exception {
         ConfigClientTemplate<?> configClientTemplate = new ConfigClientTemplate<CompositePropertySource>("http://localhost:8888", "foo",
                 new String[]{"default"});
-        Assert.assertNotNull(configClientTemplate.getPropertySource());
-        Assert.assertEquals("from foo props", configClientTemplate.getPropertySource().getProperty("foo"));
-        Assert.assertEquals("test", configClientTemplate.getPropertySource().getProperty("testprop"));
+        assertNotNull(configClientTemplate.getPropertySource());
+        assertEquals("from foo props", configClientTemplate.getPropertySource().getProperty("foo"));
+        assertEquals("test", configClientTemplate.getPropertySource().getProperty("testprop"));
     }
 
     @Test

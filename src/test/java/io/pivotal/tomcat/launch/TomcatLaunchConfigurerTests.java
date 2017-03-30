@@ -3,7 +3,7 @@ package io.pivotal.tomcat.launch;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.tomcat.util.descriptor.web.ContextEnvironment;
-import org.junit.Assert;
+import org.apache.tomcat.util.descriptor.web.ContextResource;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
@@ -54,11 +54,11 @@ public class TomcatLaunchConfigurerTests {
 
     @Test
     public void testDefaultProperties() throws Exception {
-        TomcatLaunchConfigurer tomcatLaunchConfigurer = new TomcatLaunchConfigurer("http://localhost:8888", "foo", new String[] { });
+        TomcatLaunchConfigurer tomcatLaunchConfigurer = new TomcatLaunchConfigurer("http://localhost", "foo", new String[] { });
         PropertySource<?> source = tomcatLaunchConfigurer.getPropertySource();
-        Assert.assertNotNull(source);
-        Assert.assertEquals("test", source.getProperty("testprop"));
-        Assert.assertEquals("not in config server", source.getProperty("newprop"));
+        assertNotNull(source);
+        assertEquals("test", source.getProperty("testprop"));
+        assertEquals("not in config server", source.getProperty("newprop"));
     }
 
     @Test
@@ -67,12 +67,21 @@ public class TomcatLaunchConfigurerTests {
         credentials.put("name", "jdbc/serviceName");
         credentials.put("driverClassName", "com.mysql.cj.jdbc.Driver");
         credentials.put("url", "jdbc:mysql://root:password@localhost/mysql");
-        credentials.put("username", "username");
-        credentials.put("password", "password");
+        credentials.put("username", "malston");
+        credentials.put("password", "m@lst0n");
         credentials.put("factory", "org.apache.tomcat.jdbc.pool.DataSourceFactory");
 
         TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer(null);
-        helper.createContainerDataSource(credentials);
+        ContextResource cr = helper.createContainerDataSource(credentials);
+        assertEquals("Container", cr.getAuth());
+        assertEquals("javax.sql.DataSource", cr.getType());
+        assertEquals("jdbc/serviceName", cr.getName());
+        assertEquals("com.mysql.cj.jdbc.Driver", cr.getProperty("driverClassName"));
+        assertEquals("jdbc:mysql://root:password@localhost/mysql", cr.getProperty("url"));
+        assertEquals("malston", cr.getProperty("username"));
+        assertEquals("m@lst0n", cr.getProperty("password"));
+        assertEquals("org.apache.tomcat.jdbc.pool.DataSourceFactory", cr.getProperty("factory"));
+        assertNull(cr.getProperty("connectionProperties"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -85,7 +94,7 @@ public class TomcatLaunchConfigurerTests {
     public void testGetEnvironment() throws Exception {
         TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer(null);
         ContextEnvironment env = helper.getEnvironment("test", "value");
-        Assert.assertNotNull(env);
+        assertNotNull(env);
     }
 
 }

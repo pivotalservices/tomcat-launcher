@@ -19,9 +19,6 @@ import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.util.*;
 
-/**
- * @author malston
- */
 public class ConfigClientTemplate<T> implements io.pivotal.config.client.PropertySourceProvider {
 
     private static final String HTTPS_SCHEME = "https://";

@@ -1,13 +1,11 @@
 buildscript {
     ext {
-        springBootVersion = '1.4.5.RELEASE'
         buildNrLoc = project.hasProperty('buildNr') ? "${buildNr}" : "0.0.1-SNAPSHOT"
     }
     repositories {
         mavenLocal()
         jcenter()
         mavenCentral()
-        maven { url 'https://repo.spring.io/plugins-release' }
     }
 }
 
@@ -40,7 +38,7 @@ dependencies {
     compile("org.apache.tomcat:tomcat-jdbc:${tomcatVersion}")
     runtime("org.apache.tomcat:tomcat-dbcp:${tomcatVersion}")
 
-    compile("com.github.pivotalservices:spring-cloud-config-java-client:4a3d3d1")
+    compile("com.github.pivotalservices:spring-cloud-config-java-client:8afc6a9")
 
     testCompile("junit:junit-dep:4.11")
     testCompile("com.github.stefanbirkner:system-rules:1.16.1")

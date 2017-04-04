@@ -38,9 +38,8 @@ dependencies {
     compile("org.apache.tomcat:tomcat-jdbc:${tomcatVersion}")
     runtime("org.apache.tomcat:tomcat-dbcp:${tomcatVersion}")
 
-    compile("com.github.pivotalservices:spring-cloud-config-java-client:8afc6a9")
+    compile("com.github.pivotalservices:spring-cloud-config-java-client:ae23a7b")
 
-    testCompile("junit:junit-dep:4.11")
     testCompile("com.github.stefanbirkner:system-rules:1.16.1")
     testCompile("org.hamcrest:hamcrest-library:1.3")
     testCompile "org.mockito:mockito-core:1.10.19"

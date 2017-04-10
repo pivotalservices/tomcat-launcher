@@ -32,27 +32,16 @@ jobs:
       trigger: true
     - get: m2
     - get: version
-  - aggregate:
-    - task: build-and-upload
-      file: repo/ci/tasks/build-and-upload.yml
-      params:
-        - _JAVA_OPTIONS: -Djava.security.egd=file:/dev/./urandom
-        - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
-        - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
-        - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
-        - REPO_WITH_JARS: {{snapshot-repo-with-jars}}
-        - M2_REPO: {{maven-local-dir}}
-        - SNAPSHOT: true
-    - task: integration-test
-      file: repo/ci/tasks/test-integration.yml
-      params:
-        - _JAVA_OPTIONS: -Djava.security.egd=file:/dev/./urandom
-        - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
-        - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
-        - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
-        - REPO_WITH_JARS: {{snapshot-repo-with-jars}}
-        - M2_REPO: {{maven-local-dir}}
-        - SNAPSHOT: true
+  - task: build-and-upload
+    file: repo/ci/tasks/build-and-upload.yml
+    params:
+      - _JAVA_OPTIONS: -Djava.security.egd=file:/dev/./urandom
+      - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
+      - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
+      - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
+      - REPO_WITH_JARS: {{snapshot-repo-with-jars}}
+      - M2_REPO: {{maven-local-dir}}
+      - SNAPSHOT: true
 
 - name: create-release
   serial_groups: [version, repo]
@@ -62,25 +51,15 @@ jobs:
       passed: [create-snapshot]
     - get: m2
     - get: version
-  - aggregate:
-    - task: build-and-upload
-      file: repo/ci/tasks/build-and-upload.yml
-      params:
-        - _JAVA_OPTIONS: -Djava.security.egd=file:/dev/./urandom
-        - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
-        - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
-        - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
-        - REPO_WITH_JARS: {{release-repo-with-jars}}
-        - M2_REPO: {{maven-local-dir}}
-    - task: integration-test
-      file: repo/ci/tasks/test-integration.yml
-      params:
-        - _JAVA_OPTIONS: -Djava.security.egd=file:/dev/./urandom
-        - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
-        - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
-        - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
-        - REPO_WITH_JARS: {{release-repo-with-jars}}
-        - M2_REPO: {{maven-local-dir}}
+  - task: build-and-upload
+    file: repo/ci/tasks/build-and-upload.yml
+    params:
+      - _JAVA_OPTIONS: -Djava.security.egd=file:/dev/./urandom
+      - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
+      - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
+      - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
+      - REPO_WITH_JARS: {{release-repo-with-jars}}
+      - M2_REPO: {{maven-local-dir}}
   - task: tag-release
     config:
       platform: linux

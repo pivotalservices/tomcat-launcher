@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PIPELINE_NAME=${1:-sccj}
+PIPELINE_NAME=${1:-tomcat-launcher}
 ALIAS=${2:-docker}
 CREDENTIALS=${3:-credentials.yml}
 

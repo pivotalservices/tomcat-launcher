@@ -25,3 +25,9 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+
+### Concourse ###
+credentials.yml
+credentials-*.yml
+!credentials-sample.yml
+keys/

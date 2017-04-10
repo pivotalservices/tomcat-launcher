@@ -1,0 +1,111 @@
+groups: []
+
+resources:
+- name: repo
+  type: git
+  source:
+    uri: {{app-url}}
+    branch: {{app-branch}}
+    private_key: {{github-private-key}}
+
+- name: m2
+  type: docker-image
+  source:
+    repository: malston/spring-pipeline-m2
+
+- name: version
+  type: semver
+  source:
+    initial_version: 0.0.1
+    driver: git
+    uri: {{app-url}}
+    branch: version
+    file: version
+    private_key: {{github-private-key}}
+
+jobs:
+- name: create-snapshot
+  serial_groups: [version, repo]
+  plan:
+  - aggregate:
+    - get: repo
+      trigger: true
+    - get: m2
+    - get: version
+  - aggregate:
+    - task: build-and-upload
+      file: repo/ci/tasks/build-and-upload.yml
+      params:
+        - _JAVA_OPTIONS: -Djava.security.egd=file:/dev/./urandom
+        - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
+        - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
+        - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
+        - REPO_WITH_JARS: {{snapshot-repo-with-jars}}
+        - M2_REPO: {{maven-local-dir}}
+        - SNAPSHOT: true
+    - task: integration-test
+      file: repo/ci/tasks/test-integration.yml
+      params:
+        - _JAVA_OPTIONS: -Djava.security.egd=file:/dev/./urandom
+        - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
+        - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
+        - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
+        - REPO_WITH_JARS: {{snapshot-repo-with-jars}}
+        - M2_REPO: {{maven-local-dir}}
+        - SNAPSHOT: true
+
+- name: create-release
+  serial_groups: [version, repo]
+  plan:
+  - aggregate:
+    - get: repo
+      passed: [create-snapshot]
+    - get: m2
+    - get: version
+  - aggregate:
+    - task: build-and-upload
+      file: repo/ci/tasks/build-and-upload.yml
+      params:
+        - _JAVA_OPTIONS: -Djava.security.egd=file:/dev/./urandom
+        - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
+        - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
+        - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
+        - REPO_WITH_JARS: {{release-repo-with-jars}}
+        - M2_REPO: {{maven-local-dir}}
+    - task: integration-test
+      file: repo/ci/tasks/test-integration.yml
+      params:
+        - _JAVA_OPTIONS: -Djava.security.egd=file:/dev/./urandom
+        - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
+        - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
+        - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
+        - REPO_WITH_JARS: {{release-repo-with-jars}}
+        - M2_REPO: {{maven-local-dir}}
+  - task: tag-release
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: springcloud/pipeline-base
+      inputs:
+        - name: repo
+        - name: version
+        - name: m2
+      outputs:
+        - name: out
+      run:
+        path: /bin/bash
+        args:
+          - repo/ci/tasks/tag.sh
+    params:
+      - M2_REPO: {{maven-local-dir}}
+      - TAG_PREFIX: prod
+  - aggregate:
+    - put: repo
+      params:
+        repository: out
+        tag: out/tag
+        only_tag: true
+    - put: version
+      params: {bump: patch}

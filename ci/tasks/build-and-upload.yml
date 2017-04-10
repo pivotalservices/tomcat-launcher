@@ -1,0 +1,14 @@
+---
+platform: linux
+image_resource:
+  type: docker-image
+  source:
+    repository: springcloud/pipeline-base
+inputs:
+  - name: repo
+  - name: version
+  - name: m2
+run:
+  path: /bin/bash
+  args:
+    - repo/ci/tasks/build-and-upload.sh

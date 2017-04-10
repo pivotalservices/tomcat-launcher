@@ -1,0 +1,84 @@
+---
+resources:
+ - name: repo
+   type: git
+   source:
+     uri: {{app-url}}
+     branch: {{app-branch}}
+     private_key: {{github-private-key}}
+
+ - name: version
+   type: git
+   source:
+     uri: {{app-url}}
+     branch: version
+     private_key: {{github-private-key}}
+
+ - name: m2
+   type: docker-image
+   source:
+     repository: {{docker-m2-repo}}
+     email: {{docker-hub-email}}
+     username: {{docker-hub-username}}
+     password: {{docker-hub-password}}
+
+jobs:
+ - name: init-m2
+   plan:
+    - aggregate:
+       - get: repo
+       - get: version
+    - task: build-m2
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: springcloud/pipeline-base
+        inputs:
+         - name: repo
+         - name: version
+        outputs:
+         - name: to-push
+        run:
+          path: /bin/bash
+          args:
+           - repo/ci/tasks/cache-gradle.sh
+           - init
+      params:
+       - M2_REPO: m2/rootfs/root
+       - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
+       - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
+       - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
+    - put: m2
+      params:
+        import_file: to-push/rootfs.tar
+ - name: update-m2
+   plan:
+    - aggregate:
+       - get: repo
+       - get: m2
+    - task: build-m2
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: springcloud/pipeline-base
+        inputs:
+         - name: repo
+         - name: m2
+        outputs:
+         - name: to-push
+        run:
+          path: /bin/bash
+          args:
+            - repo/ci/tasks/cache-gradle.sh
+      params:
+       - M2_REPO: m2/rootfs/root
+       - M2_SETTINGS_REPO_ID: {{m2-settings-repo-id}}
+       - M2_SETTINGS_REPO_USERNAME: {{m2-settings-repo-username}}
+       - M2_SETTINGS_REPO_PASSWORD: {{m2-settings-repo-password}}
+    - put: m2
+      params:
+        import_file: to-push/rootfs.tar

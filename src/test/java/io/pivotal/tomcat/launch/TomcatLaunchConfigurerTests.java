@@ -11,7 +11,6 @@ import org.springframework.core.env.PropertySource;
 
 import java.util.HashMap;
 
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.*;
 
 public class TomcatLaunchConfigurerTests {
@@ -19,46 +18,30 @@ public class TomcatLaunchConfigurerTests {
     @Rule
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
-    @Test
-    public void testLoadConfiguration() throws Exception {
-    	TomcatLaunchConfigurer tomcatLaunchConfigurer = new TomcatLaunchConfigurer(() -> new PropertySource.StubPropertySource("test"));
-        PropertySource<?> source = tomcatLaunchConfigurer.getPropertySource();
-        assertThat(source, instanceOf(PropertySource.StubPropertySource.class));
-        assertEquals("test", source.getName());
-    }
 
     @Test
     public void testCreateStandardContext() throws Exception {
-    	TomcatLaunchConfigurer tomcatLaunchConfigurer = new TomcatLaunchConfigurer("http://localhost:8888", "application",
-                new String[] { "default" });
+    	TomcatLaunchConfigurer tomcatLaunchConfigurer = new TomcatLaunchConfigurer();
         Tomcat tomcat = new Tomcat();
         StandardContext ctx = tomcatLaunchConfigurer.createStandardContext(tomcat);
         assertNotNull(ctx);
     }
 
     @Test
-    public void testLoadLocalConfigurationFromFile() throws Exception {
-        TomcatLaunchConfigurer tomcatLaunchConfigurer = new TomcatLaunchConfigurer("http://bogus", "application",
-                new String[] { "default" });
-        PropertySource<?> source = tomcatLaunchConfigurer.getPropertySource();
-        assertNotNull(source);
-        ContextEnvironment ctxEnv = tomcatLaunchConfigurer.getEnvironment(source, "foo");
+    public void testGetProperty() throws Exception {
+        TomcatLaunchConfigurer tomcatLaunchConfigurer = new TomcatLaunchConfigurer();
+        ContextEnvironment ctxEnv = tomcatLaunchConfigurer.getEnvironment(new PropertySource<String>("foo") {
+            public String getProperty(String name) {
+                return "mark_laptop";
+            }
+        }, "foo");
         assertEquals(ctxEnv.getValue(), "mark_laptop");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetResourceThrowsIllegalArgumentException() throws Exception {
-        TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer("", "", null);
+        TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer();
         helper.createContainerDataSource(new HashMap<>());
-    }
-
-    @Test
-    public void testDefaultProperties() throws Exception {
-        TomcatLaunchConfigurer tomcatLaunchConfigurer = new TomcatLaunchConfigurer("http://localhost", "foo", new String[] { });
-        PropertySource<?> source = tomcatLaunchConfigurer.getPropertySource();
-        assertNotNull(source);
-        assertEquals("test", source.getProperty("testprop"));
-        assertEquals("not in config server", source.getProperty("newprop"));
     }
 
     @Test
@@ -71,7 +54,7 @@ public class TomcatLaunchConfigurerTests {
         credentials.put("password", "m@lst0n");
         credentials.put("factory", "org.apache.tomcat.jdbc.pool.DataSourceFactory");
 
-        TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer(null);
+        TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer();
         ContextResource cr = helper.createContainerDataSource(credentials);
         assertEquals("Container", cr.getAuth());
         assertEquals("javax.sql.DataSource", cr.getType());
@@ -86,13 +69,13 @@ public class TomcatLaunchConfigurerTests {
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetEnvironmentThrowsIllegalArgumentException() throws Exception {
-        TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer("", "", null);
+        TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer();
         helper.getEnvironment("test", null);
     }
 
     @Test
     public void testGetEnvironment() throws Exception {
-        TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer(null);
+        TomcatLaunchConfigurer helper = new TomcatLaunchConfigurer();
         ContextEnvironment env = helper.getEnvironment("test", "value");
         assertNotNull(env);
     }

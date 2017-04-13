@@ -1,7 +1,5 @@
 package io.pivotal.tomcat.launch;
 
-import io.pivotal.config.client.ConfigClientTemplate;
-import io.pivotal.config.client.PropertySourceProvider;
 import org.apache.catalina.WebResourceRoot;
 import org.apache.catalina.WebResourceSet;
 import org.apache.catalina.core.StandardContext;
@@ -39,17 +37,10 @@ public class TomcatLaunchConfigurer {
 
     private String contextPath = null;
 
-	private final PropertySourceProvider provider;
-
-	public TomcatLaunchConfigurer(final PropertySourceProvider provider) {
-		this.provider = provider;
+	public TomcatLaunchConfigurer() {
 		this.buildClassDir = "build/classes/main";
 		this.relativeWebContentFolder = "src/main/webapp";
 		this.contextPath = "";
-	}
-
-	public TomcatLaunchConfigurer(final String configServerUrl, final String app, final String[] profiles) {
-		this(new ConfigClientTemplate<>(configServerUrl, app, profiles));
 	}
 
 	public StandardContext createStandardContext(Tomcat tomcat) throws IOException, ServletException {
@@ -139,10 +130,6 @@ public class TomcatLaunchConfigurer {
 		} catch (URISyntaxException ex) {
 			throw new RuntimeException(ex);
 		}
-	}
-
-	public PropertySource<?> getPropertySource() {
-		return this.provider.getPropertySource();
 	}
 
 	public ContextResource createContainerDataSource(Map<String, Object> credentials) {

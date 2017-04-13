@@ -28,17 +28,23 @@ import java.util.List;
 
 public class TomcatLauncher {
 
-    private String buildClassDir = null;
+    public static final String DEFAULT_BUILD_DIR = "build/classes/main";
 
-    private String relativeWebContentFolder = null;
+    public static final String DEFAULT_RELATIVE_WEB_CONTENT_FOLDER = "src/main/webapp";
+
+    public static final String DEFAULT_CONTEXT_PATH = "";
+
+    private String buildClassDir = DEFAULT_BUILD_DIR;
+
+    private String relativeWebContentFolder = DEFAULT_RELATIVE_WEB_CONTENT_FOLDER;
+
+    private String contextPath = DEFAULT_CONTEXT_PATH;
 
     private String additionalLibFolder = null;
 
     private String pathToWebXml = null;
 
     private String pathToContextXml = null;
-
-    private String contextPath = null;
 
     private Context context;
 
@@ -54,7 +60,7 @@ public class TomcatLauncher {
         return new TomcatConfigurer(new TomcatLauncher());
     }
 
-    public File getWebContentFolder() {
+    private File getWebContentFolder() {
         return getRootFolder(this.getRelativeWebContentFolder());
     }
 
@@ -107,7 +113,7 @@ public class TomcatLauncher {
         }
         this.setPort(Integer.valueOf(webPort));
 
-        StandardContext ctx = (StandardContext) addWebApp(root.getAbsolutePath());
+        StandardContext ctx = (StandardContext) addWebApp();
 
         StandardJarScanner scanner = new StandardJarScanner();
         scanner.setScanBootstrapClassPath(true);
@@ -174,13 +180,18 @@ public class TomcatLauncher {
         }
     }
 
-    public Context addWebApp(String absolutePath) throws ServletException {
-        File webContentFolder = new File(absolutePath, this.getRelativeWebContentFolder());
+    public Context addWebApp() throws ServletException {
+        return this.addWebApp(this.getContextPath(), this.getRelativeWebContentFolder());
+    }
+
+    private Context addWebApp(String contextPath, String relativeWebContentFolder) throws ServletException {
+        String absolutePath = getWebContentFolder().getAbsolutePath();
+        File webContentFolder = new File(absolutePath, relativeWebContentFolder);
         if (!webContentFolder.exists()) {
             webContentFolder = new File(absolutePath);
         }
         System.out.println("configuring app with basedir: " + webContentFolder.getAbsolutePath());
-        Context ctx = tomcat.addWebapp(this.getContextPath(), webContentFolder.getAbsolutePath());
+        Context ctx = tomcat.addWebapp(contextPath, webContentFolder.getAbsolutePath());
         // Set execution independent of current thread context classloader
         // (compatibility with exec:java mojo)
         ctx.setParentClassLoader(TomcatLauncher.class.getClassLoader());

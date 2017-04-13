@@ -19,9 +19,6 @@ public class TomcatConfigurer {
 
     public TomcatConfigurer(TomcatLauncher launcher) {
         this.launcher = launcher;
-        launcher.setBuildClassDir("build/classes/main");
-        launcher.setRelativeWebContentFolder("src/main/webapp");
-        launcher.setContextPath("");
     }
 
     public TomcatConfigurer withStandardContext() throws IOException, ServletException {
@@ -45,8 +42,23 @@ public class TomcatConfigurer {
         return this;
     }
 
+    public TomcatConfigurer buildClassFolder(String buildClassFolder) {
+        launcher.setBuildClassDir(buildClassFolder);
+        return this;
+    }
+
+    public TomcatConfigurer webContentFolder(String relativeWebContentFolder) {
+        launcher.setRelativeWebContentFolder(relativeWebContentFolder);
+        return this;
+    }
+
+    public TomcatConfigurer contextPath(String contextPath) {
+        launcher.setContextPath(contextPath);
+        return this;
+    }
+
     public TomcatConfigurer addWebApp() throws ServletException {
-        Context context = launcher.addWebApp(launcher.getWebContentFolder().getAbsolutePath());
+        Context context = launcher.addWebApp();
         launcher.setContext(context);
         return this;
     }
@@ -110,6 +122,21 @@ public class TomcatConfigurer {
         return this;
     }
 
+    public TomcatConfigurer addEnvironment(String name, String value) {
+        launcher.getContext().getNamingResources().addEnvironment(this.getEnvironment(name, value));
+        return this;
+    }
+
+    public TomcatConfigurer addEnvironment(String name, String value, String type, boolean override) {
+        launcher.getContext().getNamingResources().addEnvironment(this.getEnvironment(name, value, type, override));
+        return this;
+    }
+
+    public TomcatConfigurer addEnvironment(PropertySource source, String name, String type, boolean override) {
+        launcher.getContext().getNamingResources().addEnvironment(this.getEnvironment(source, name, type, override));
+        return this;
+    }
+
     public TomcatConfigurer addContextResource(ContextResource resource) {
         launcher.getContextResources().add(resource);
         return this;
@@ -131,17 +158,17 @@ public class TomcatConfigurer {
         return env;
     }
 
-    public ContextEnvironment getEnvironment(String name, String value) {
+    private ContextEnvironment getEnvironment(String name, String value) {
         return getEnvironment(name, value, "java.lang.String", false);
     }
 
-    public ContextEnvironment getEnvironment(PropertySource<?> source, String name, String type, boolean override) {
+    private ContextEnvironment getEnvironment(PropertySource<?> source, String name, String type, boolean override) {
         Assert.notNull(source, "PropertySource cannot be null");
         Assert.notNull(source.getProperty(name), "Cannot find property with name: '" + name + "'");
         return getEnvironment(name, source.getProperty(name).toString(), type, override);
     }
 
-    public ContextEnvironment getEnvironment(PropertySource<?> source, String name) {
+    private ContextEnvironment getEnvironment(PropertySource<?> source, String name) {
         return getEnvironment(name, source.getProperty(name).toString());
     }
 }

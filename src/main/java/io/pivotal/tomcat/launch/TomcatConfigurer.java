@@ -171,6 +171,6 @@ public class TomcatConfigurer {
     }
 
     private ContextEnvironment getEnvironment(PropertySource<?> source, String name) {
-        return getEnvironment(name, source.getProperty(name).toString());
+        return getEnvironment(name, source.getProperty(name) != null ? source.getProperty(name).toString() : "");
     }
 }

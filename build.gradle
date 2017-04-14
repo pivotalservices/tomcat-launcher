@@ -70,7 +70,7 @@ dependencies {
     compile("org.apache.tomcat:tomcat-jdbc:${tomcatVersion}")
     runtime("org.apache.tomcat:tomcat-dbcp:${tomcatVersion}")
 
-    compile("com.github.pivotalservices:spring-cloud-config-java-client:ae23a7b")
+	compile("org.springframework:spring-core:4.3.4.RELEASE")
 
     testCompile("com.github.stefanbirkner:system-rules:1.16.1")
     testCompile("org.hamcrest:hamcrest-library:1.3")

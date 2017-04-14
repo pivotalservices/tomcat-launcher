@@ -120,8 +120,8 @@ public class TomcatLauncher {
         addJarScanner(ctx, scanner);
         disableTldScanning(ctx);
 
-        addDefaultContextXml(ctx);
-        addDefaultWebXml(ctx);
+        addDefaultContextXml(ctx, this.getPathToContextXml());
+        addDefaultWebXml(ctx, this.getPathToWebXml());
 
         WebResourceRoot webResourceRoot = new StandardRoot(ctx);
         addWebInfClasses(webResourceRoot, this.getBuildClassDir());
@@ -159,18 +159,18 @@ public class TomcatLauncher {
         }
     }
 
-    public void addDefaultWebXml(Context ctx) {
-        if (this.getPathToWebXml() != null && new File(this.getPathToWebXml()).exists()) {
-            ((StandardContext)ctx).setDefaultWebXml(this.getPathToWebXml());
+    public void addDefaultWebXml(Context ctx, String pathToWebXml) {
+        if (pathToWebXml != null && new File(pathToWebXml).exists()) {
+            ((StandardContext)ctx).setDefaultWebXml(pathToWebXml);
         } else {
             ((StandardContext)ctx).setDefaultWebXml("org/apache/catalin/startup/NO_DEFAULT_XML");
         }
     }
 
-    public void addDefaultContextXml(Context ctx) {
-        System.out.println("pathToContextXml is '" + this.getPathToContextXml() + "'");
-        if (this.getPathToContextXml() != null) {
-            File contextXmlFile = new File(this.getPathToContextXml());
+    public void addDefaultContextXml(Context ctx, String pathToContextXml) {
+        System.out.println("pathToContextXml is '" + pathToContextXml + "'");
+        if (pathToContextXml != null) {
+            File contextXmlFile = new File(pathToContextXml);
             if (contextXmlFile != null && contextXmlFile.exists()) {
                 ctx.setConfigFile(
                         TomcatConfigurer.class.getClassLoader().getResource(contextXmlFile.getAbsolutePath()));

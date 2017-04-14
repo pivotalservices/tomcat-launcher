@@ -1,19 +1,16 @@
 package io.pivotal.tomcat.launch;
 
 import org.apache.catalina.Context;
+import org.apache.catalina.core.StandardContext;
 import org.apache.tomcat.util.descriptor.web.ContextEnvironment;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.springframework.core.env.PropertySource;
 
-import static io.pivotal.tomcat.launch.TomcatLauncher.DEFAULT_BUILD_DIR;
-import static io.pivotal.tomcat.launch.TomcatLauncher.DEFAULT_CONTEXT_PATH;
-import static io.pivotal.tomcat.launch.TomcatLauncher.DEFAULT_RELATIVE_WEB_CONTENT_FOLDER;
+import static io.pivotal.tomcat.launch.TomcatLauncher.*;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -87,4 +84,19 @@ public class TomcatLauncherTests {
         assertThat(launcher1.getContextPath(), is(equalTo(launcher2.getContextPath())));
     }
 
+    @Test
+    public void shouldEqualSameContextXml() throws Exception {
+        TomcatLauncher launcher1 = TomcatLauncher.configure().withStandardContext().defaultContextXml("path/to/context.xml").apply();
+        TomcatLauncher launcher2 = TomcatLauncher.configure().defaultContextXml("path/to/context.xml").withStandardContext().apply();
+
+        assertThat(((StandardContext)launcher1.getContext()).getDefaultContextXml(), is(equalTo(((StandardContext)launcher2.getContext()).getDefaultContextXml())));
+    }
+
+    @Test
+    public void shouldEqualSameWebXml() throws Exception {
+        TomcatLauncher launcher1 = TomcatLauncher.configure().withStandardContext().defaultWebXml("path/to/web.xml").apply();
+        TomcatLauncher launcher2 = TomcatLauncher.configure().defaultWebXml("path/to/web.xml").withStandardContext().apply();
+
+        assertThat(((StandardContext)launcher1.getContext()).getDefaultWebXml(), is(equalTo(((StandardContext)launcher2.getContext()).getDefaultWebXml())));
+    }
 }

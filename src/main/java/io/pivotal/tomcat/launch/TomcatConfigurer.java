@@ -79,16 +79,18 @@ public class TomcatConfigurer {
         return this;
     }
 
-    public TomcatConfigurer defaultContextXml() {
+    public TomcatConfigurer defaultContextXml(String pathToContextXml) {
+        launcher.setPathToContextXml(pathToContextXml);
         if (launcher.getContext() != null) {
-            launcher.addDefaultContextXml(launcher.getContext());
+            launcher.addDefaultContextXml(launcher.getContext(), pathToContextXml);
         }
         return this;
     }
 
-    public TomcatConfigurer defaultWebXml() {
+    public TomcatConfigurer defaultWebXml(String pathToWebXml) {
+        launcher.setPathToWebXml(pathToWebXml);
         if (launcher.getContext() != null) {
-            launcher.addDefaultWebXml(launcher.getContext());
+            launcher.addDefaultWebXml(launcher.getContext(), pathToWebXml);
         }
         return this;
     }

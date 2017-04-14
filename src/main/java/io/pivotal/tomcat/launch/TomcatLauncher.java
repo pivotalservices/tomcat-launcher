@@ -160,22 +160,29 @@ public class TomcatLauncher {
     }
 
     public void addDefaultWebXml(Context ctx, String pathToWebXml) {
-        if (pathToWebXml != null && new File(pathToWebXml).exists()) {
-            ((StandardContext)ctx).setDefaultWebXml(pathToWebXml);
-        } else {
-            ((StandardContext)ctx).setDefaultWebXml("org/apache/catalin/startup/NO_DEFAULT_XML");
+        if (pathToWebXml != null) {
+            System.out.println("pathToWebXml is '" + pathToWebXml + "'");
+            File root = getWebContentFolder();
+            File webXmlFile = new File(root.getAbsolutePath(), pathToWebXml);
+            if (webXmlFile.exists()) {
+                System.out.println("Full path to web.xml is '" + webXmlFile.getAbsolutePath() + "'");
+                ((StandardContext) ctx).setDefaultWebXml(webXmlFile.getAbsolutePath());
+            } else {
+                ((StandardContext) ctx).setDefaultWebXml("org/apache/catalin/startup/NO_DEFAULT_XML");
+            }
         }
     }
 
     public void addDefaultContextXml(Context ctx, String pathToContextXml) {
-        System.out.println("pathToContextXml is '" + pathToContextXml + "'");
         if (pathToContextXml != null) {
-            File contextXmlFile = new File(pathToContextXml);
-            if (contextXmlFile != null && contextXmlFile.exists()) {
+            System.out.println("pathToContextXml is '" + pathToContextXml + "'");
+            File root = getWebContentFolder();
+            File contextXmlFile = new File(root.getAbsolutePath(), pathToContextXml);
+            if (contextXmlFile.exists()) {
+                System.out.println("Full path to context.xml is '" + contextXmlFile.getAbsolutePath() + "'");
                 ctx.setConfigFile(
                         TomcatConfigurer.class.getClassLoader().getResource(contextXmlFile.getAbsolutePath()));
                 ((StandardContext)ctx).setDefaultContextXml(contextXmlFile.getAbsolutePath());
-                System.out.println("full path to context.xml is '" + contextXmlFile.getAbsolutePath() + "'");
             }
         }
     }

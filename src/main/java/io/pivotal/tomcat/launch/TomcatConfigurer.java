@@ -21,17 +21,6 @@ public class TomcatConfigurer {
         this.launcher = launcher;
     }
 
-    public TomcatConfigurer withStandardContext() throws IOException, ServletException {
-        Context ctx = launcher.createStandardContext();
-        launcher.setContext(ctx);
-        return this;
-    }
-
-    public TomcatConfigurer withContext(Context context) {
-        launcher.setContext(context);
-        return this;
-    }
-
     public TomcatConfigurer baseDir(Path baseDir) {
         launcher.setBaseDir(baseDir);
         return this;

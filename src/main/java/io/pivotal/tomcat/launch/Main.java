@@ -25,7 +25,6 @@ public class Main {
 		PropertySource source = new MapPropertySource("foo", properties);
 
 		TomcatLauncher.configure()
-                .withStandardContext()
 				.addEnvironment(source, "foo")
 				.addEnvironment(source, "newprop")
                 .addEnvironment(source, "foo.db")

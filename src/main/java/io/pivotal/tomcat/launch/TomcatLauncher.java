@@ -53,11 +53,24 @@ public class TomcatLauncher {
     private List<ContextResource> contextResources = new ArrayList<>();
 
     private TomcatLauncher() {
+        this(null);
+    }
+
+    private TomcatLauncher(Context ctx) {
         this.tomcat = new Tomcat();
+        if (ctx != null) {
+            this.context = ctx;
+        } else {
+            this.context = createStandardContext();
+        }
     }
 
     public static TomcatConfigurer configure() {
         return new TomcatConfigurer(new TomcatLauncher());
+    }
+
+    public static TomcatConfigurer configure(Context ctx) {
+        return new TomcatConfigurer(new TomcatLauncher(ctx));
     }
 
     private File getWebContentFolder() {
@@ -98,10 +111,15 @@ public class TomcatLauncher {
         }
     }
 
-    public StandardContext createStandardContext() throws IOException, ServletException {
+    protected StandardContext createStandardContext() {
         File root = getWebContentFolder();
         System.setProperty("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE", "true");
-        Path tempPath = Files.createTempDirectory("tomcat-base-dir");
+        Path tempPath = null;
+        try {
+            tempPath = Files.createTempDirectory("tomcat-base-dir");
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create temporary directory with prefix tomcat-base-dir", e);
+        }
         this.setBaseDir(tempPath);
 
         // The port that we should run on can be set into an environment
@@ -187,18 +205,23 @@ public class TomcatLauncher {
         }
     }
 
-    public Context addWebApp() throws ServletException {
+    public Context addWebApp() {
         return this.addWebApp(this.getContextPath(), this.getRelativeWebContentFolder());
     }
 
-    private Context addWebApp(String contextPath, String relativeWebContentFolder) throws ServletException {
+    private Context addWebApp(String contextPath, String relativeWebContentFolder) {
         String absolutePath = getWebContentFolder().getAbsolutePath();
         File webContentFolder = new File(absolutePath, relativeWebContentFolder);
         if (!webContentFolder.exists()) {
             webContentFolder = new File(absolutePath);
         }
         System.out.println("configuring app with basedir: " + webContentFolder.getAbsolutePath());
-        Context ctx = tomcat.addWebapp(contextPath, webContentFolder.getAbsolutePath());
+        Context ctx = null;
+        try {
+            ctx = tomcat.addWebapp(contextPath, webContentFolder.getAbsolutePath());
+        } catch (ServletException e) {
+            throw new RuntimeException(String.format("Failed to add web content folder %s to context path %s", contextPath, webContentFolder.getAbsolutePath()), e);
+        }
         // Set execution independent of current thread context classloader
         // (compatibility with exec:java mojo)
         ctx.setParentClassLoader(TomcatLauncher.class.getClassLoader());
